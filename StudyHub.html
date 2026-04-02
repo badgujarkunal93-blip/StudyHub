@@ -104,12 +104,21 @@
 <div id="view-notes" class="view">
   <!-- Notes List View -->
   <div id="notes-list-view">
-    <h1 style="font-size:2rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:0.25rem">Notes Vault</h1>
-    <p style="color:var(--on-surface-variant);margin-bottom:2rem">Capture, store, and revisit your learning.</p>
+    <div class="notes-heading">
+      <button class="icon-btn" id="notes-back-btn" onclick="goToParentFolder()" style="display:none"><span class="material-symbols-outlined">arrow_back</span></button>
+      <div style="flex:1;min-width:0">
+        <div id="notes-breadcrumb" class="notes-breadcrumb" style="display:none"></div>
+        <h1 id="notes-page-title" style="font-size:2rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:0.25rem">Notes Vault</h1>
+        <p id="notes-page-subtitle" style="color:var(--on-surface-variant);margin-bottom:2rem">Capture, store, and revisit your learning.</p>
+      </div>
+    </div>
     <!-- Quick actions -->
-    <div class="grid-2" style="margin-bottom:2rem">
+    <div class="notes-actions" style="margin-bottom:2rem">
       <button class="btn-primary" style="display:flex;align-items:center;gap:0.5rem;justify-content:center;padding:1rem" onclick="capturePhoto()">
         <span class="material-symbols-outlined filled" style="font-size:20px">photo_camera</span> Capture Photo
+      </button>
+      <button class="btn-primary" style="display:flex;align-items:center;gap:0.5rem;justify-content:center;padding:1rem;background:#0f766e" onclick="openFileUpload()">
+        <span class="material-symbols-outlined" style="font-size:20px">upload_file</span> Upload PDF / Photo
       </button>
       <button class="btn-primary" style="display:flex;align-items:center;gap:0.5rem;justify-content:center;padding:1rem;background:var(--primary-container)" onclick="openNewNote()">
         <span class="material-symbols-outlined" style="font-size:20px">add</span> New Note
@@ -117,12 +126,12 @@
     </div>
     <!-- Folders -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <h2 class="section-title" style="margin:0">Folders</h2>
+      <h2 class="section-title" style="margin:0" id="folders-section-title">Folders</h2>
       <button class="icon-btn" onclick="openAddFolder()"><span class="material-symbols-outlined">create_new_folder</span></button>
     </div>
-    <div id="notes-folders" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.75rem;margin-bottom:2rem"></div>
+    <div id="notes-folders" class="folder-grid" style="margin-bottom:2rem"></div>
     <!-- Recent -->
-    <h2 class="section-title">Recent Notes</h2>
+    <h2 class="section-title" id="items-section-title">Recent Items</h2>
     <div id="notes-recent" style="display:flex;flex-direction:column;gap:0.75rem"></div>
   </div>
   <!-- Note Editor View -->
@@ -144,6 +153,7 @@
 
 <!-- Hidden camera input -->
 <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="library-file-input" accept="image/*,.pdf,application/pdf" multiple style="display:none">
 
 <!-- ============ PROFILE ============ -->
 <div id="view-profile" class="view">
@@ -263,6 +273,7 @@
   <div class="modal">
     <h2>New Folder</h2>
     <div class="form-group"><label>Folder Name</label><input class="form-input" id="inp-folder-name" placeholder="e.g. Chemistry"></div>
+    <div class="form-group"><label>Parent Folder</label><select class="form-input" id="inp-folder-parent"></select></div>
     <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
       <button class="btn-primary" style="flex:1" onclick="saveFolder()">Create</button>
       <button class="btn-primary" style="flex:1;background:var(--surface-container-high);color:var(--on-surface)" onclick="closeModal('modal-folder')">Cancel</button>

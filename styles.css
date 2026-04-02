@@ -158,9 +158,26 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 ::-webkit-scrollbar-thumb { background: var(--outline-variant); border-radius: 4px; }
 
 /* Notes folder */
+.notes-heading { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.5rem; }
+.notes-breadcrumb { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.notes-crumb { background: none; border: none; padding: 0; font: inherit; font-size: 0.75rem; font-weight: 600; color: #64748b; cursor: pointer; }
+.notes-crumb.active { color: var(--primary); }
+.notes-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; }
+.folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
 .folder-card { background: var(--surface-container-lowest); border: 1px solid rgba(199,196,216,0.2); border-radius: 1rem; padding: 1.25rem; cursor: pointer; transition: all 0.2s; }
 .folder-card:hover { background: var(--surface-container-low); box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
 .folder-icon { width: 3rem; height: 3rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; }
+.folder-card-meta { font-size: 0.75rem; color: var(--on-surface-variant); margin-top: 0.35rem; }
+.folder-card-path { font-size: 0.6875rem; color: #94a3b8; margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folder-card-add { display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed rgba(199,196,216,0.3); background: var(--surface-container-low); min-height: 152px; }
+.folder-card-add:hover { border-color: rgba(79,70,229,0.35); }
+.library-card { display: flex; align-items: center; gap: 1rem; }
+.library-icon { width: 3.5rem; height: 3.5rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.library-body { flex: 1; min-width: 0; }
+.library-title-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.library-title { font-weight: 600; font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.library-meta { font-size: 0.75rem; color: var(--on-surface-variant); margin-top: 0.125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.library-label { display: inline-flex; align-items: center; justify-content: center; padding: 0.2rem 0.55rem; border-radius: 999px; background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0; }
 
 /* Note editor */
 .note-editor { display: none; }
@@ -189,11 +206,18 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 .delete-btn { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.25rem; border-radius: 0.25rem; opacity: 0; transition: all 0.15s; display: flex; }
 .card:hover .delete-btn, .task-row:hover .delete-btn { opacity: 1; }
 .delete-btn:hover { color: var(--error); }
+.delete-btn-shifted { opacity: 1; align-items: center; gap: 0.35rem; margin-left: auto; padding: 0.45rem 0.75rem; border-radius: 999px; background: rgba(148,163,184,0.08); }
+.delete-btn-shifted:hover { background: rgba(186,26,26,0.08); }
+.delete-btn-text { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; }
 
 /* Task row */
-.task-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; cursor: pointer; transition: opacity 0.2s; }
+.task-row { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.75rem 0; transition: opacity 0.2s; }
 .task-row.done { opacity: 0.45; }
 .task-row.done .task-label { text-decoration: line-through; }
+.task-main { width: 100%; display: flex; align-items: center; gap: 0.75rem; background: none; border: none; padding: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.task-label { flex: 1; font-size: 0.875rem; font-weight: 500; }
+.task-actions { display: flex; justify-content: flex-end; padding-left: 2rem; }
+.card-actions { display: flex; justify-content: flex-end; margin-top: 0.9rem; padding-top: 0.75rem; border-top: 1px solid rgba(199,196,216,0.35); }
 
 /* ========== PROFILE ========== */
 .profile-avatar-lg { width: 5rem; height: 5rem; border-radius: 50%; background: var(--surface-container-high); overflow: hidden; margin: 0 auto 1rem; border: 3px solid var(--primary); }
