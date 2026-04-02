@@ -33,10 +33,9 @@ function seedDefaults() {
   const days = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
   const classes = {
     Monday: [
-      { id: 1, name: 'Advanced Mathematics', room: 'Lecture Hall A2', start: '08:30', end: '09:45' },
-      { id: 2, name: 'Data Structures & Algorithms', room: 'Lab Room 402', start: '10:00', end: '11:15' },
-      { id: 3, name: 'Software Engineering', room: 'Seminar Room 12', start: '11:30', end: '12:45' },
-      { id: 4, name: 'Technical Writing', room: 'Main Library', start: '14:00', end: '15:30' },
+      { id: 1, name: 'Data Structures & Algorithms', room: 'Lab Room 402', start: '09:00', end: '10:30' },
+      { id: 2, name: 'Software Engineering', room: 'Seminar Room 12', start: '11:00', end: '12:30' },
+      { id: 3, name: 'Philosophy', room: 'Room 210', start: '14:00', end: '15:00' },
     ],
     Tuesday: [
       { id: 5, name: 'Physics II', room: 'Science Block 3', start: '09:00', end: '10:30' },
@@ -162,9 +161,14 @@ function normalizeLibraryData() {
 }
 
 // ==================== TAB NAVIGATION ====================
+function updateScreenMode(tabId) {
+  document.body.classList.toggle('timetable-mode', tabId === 'timetable');
+}
 function switchTab(tabId, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + tabId).classList.add('active');
+  updateScreenMode(tabId);
+  if (tabId === 'timetable') hideToast();
   document.querySelectorAll('.nav-item').forEach(n => {
     n.classList.remove('active');
     n.querySelector('.material-symbols-outlined').classList.remove('filled');
@@ -191,11 +195,25 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 });
 
 // ==================== TOAST ====================
+let toastTimer = null;
+function hideToast() {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.classList.remove('show');
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+}
 function showToast(msg) {
   const t = document.getElementById('toast');
+  if (toastTimer) clearTimeout(toastTimer);
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+    toastTimer = null;
+  }, 2200);
 }
 
 // ==================== TIMER ====================
@@ -245,27 +263,48 @@ function renderDashboard() {
     document.getElementById('dash-live-badge').style.display = 'none';
   } else {
     const current = getCurrentClass(todayClasses);
-    const next = getNextClass(todayClasses);
+    const upcoming = getUpcomingClasses(todayClasses, 2);
     document.getElementById('dash-live-badge').style.display = current ? 'inline-block' : 'none';
-    let html = '<div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem">';
+    let html = '<div class="dash-schedule-slider">';
     if (current) {
       const prog = getClassProgress(current);
-      html += `<div style="background:var(--primary);color:white;padding:2rem;border-radius:0.75rem;position:relative;overflow:hidden;min-height:200px;display:flex;flex-direction:column;justify-content:space-between">
+      const remaining = Math.max(0, timeToMinutes(current.end) - (now.getHours() * 60 + now.getMinutes()));
+      html += `<div class="dash-schedule-slide dash-schedule-slide-primary" style="background:var(--primary);color:white;padding:2rem;border-radius:0.75rem;position:relative;overflow:hidden;min-height:200px;display:flex;flex-direction:column;justify-content:space-between">
         <div><div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem"><span class="material-symbols-outlined filled" style="font-size:14px">sensors</span><span style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;opacity:0.8">${current.room}</span></div>
         <h3 style="font-size:1.75rem;font-weight:700;line-height:1.2">${current.name}</h3>
         <p style="margin-top:0.5rem;opacity:0.8;font-size:0.875rem">${current.start} - ${current.end}</p></div>
         <div><p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;opacity:0.6;margin-bottom:0.5rem">Progress</p>
-        <div style="width:100%;height:6px;background:rgba(255,255,255,0.2);border-radius:4px;overflow:hidden"><div style="width:${prog}%;height:100%;background:white;border-radius:4px;transition:width 1s"></div></div></div>
+        <div style="width:100%;height:6px;background:rgba(255,255,255,0.2);border-radius:4px;overflow:hidden"><div style="width:${prog}%;height:100%;background:white;border-radius:4px;transition:width 1s"></div></div><p style="font-size:0.75rem;opacity:0.82;margin-top:0.75rem">${remaining} min left in class</p></div>
         <div style="position:absolute;right:-2rem;top:-2rem;width:8rem;height:8rem;background:rgba(255,255,255,0.08);border-radius:50%;filter:blur(20px)"></div></div>`;
     } else {
-      html += `<div class="card" style="display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--on-surface-variant)"><div style="text-align:center"><span class="material-symbols-outlined" style="font-size:2rem;margin-bottom:0.5rem;display:block">free_cancellation</span>No class right now</div></div>`;
+      const next = upcoming[0];
+      const leadText = next
+        ? `Next starts in ${Math.max(0, timeToMinutes(next.start) - (now.getHours() * 60 + now.getMinutes()))} min`
+        : 'You are done for today';
+      html += `<div class="card dash-schedule-slide dash-schedule-slide-primary" style="display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--on-surface-variant)">
+        <div style="text-align:center">
+          <span class="material-symbols-outlined" style="font-size:2rem;margin-bottom:0.5rem;display:block">free_cancellation</span>
+          <p style="font-size:1.15rem;font-weight:600;color:var(--on-surface)">No class right now</p>
+          <p style="font-size:0.8125rem;margin-top:0.35rem">${leadText}</p>
+        </div>
+      </div>`;
     }
-    if (next) {
-      html += `<div style="background:var(--surface-container-low);padding:1.5rem;border-radius:0.75rem;display:flex;flex-direction:column;justify-content:space-between">
-        <div><p class="section-label">Next Class</p><h4 style="font-size:1.1rem;font-weight:600;margin-top:0.75rem;line-height:1.3">${next.name}</h4><p style="font-size:0.8125rem;color:var(--secondary);margin-top:0.25rem">${next.start} - ${next.end}</p></div>
-        <div style="border-top:1px solid rgba(199,196,216,0.15);padding-top:0.75rem;margin-top:0.75rem;display:flex;align-items:center;gap:0.5rem;color:#64748b"><span class="material-symbols-outlined" style="font-size:16px">location_on</span><span style="font-size:0.75rem;font-weight:500">${next.room}</span></div></div>`;
+    const visibleUpcoming = current ? upcoming : upcoming.slice(0, 2);
+    if (visibleUpcoming.length) {
+      html += visibleUpcoming.map((entry, index) => `
+        <div class="dash-schedule-slide dash-schedule-slide-secondary" style="background:var(--surface-container-low);padding:1.5rem;border-radius:0.75rem;display:flex;flex-direction:column;justify-content:space-between;min-height:200px">
+          <div>
+            <p class="section-label">${current && index === 0 ? 'Up Next' : `Coming Up ${index + 1}`}</p>
+            <h4 style="font-size:1.1rem;font-weight:600;margin-top:0.75rem;line-height:1.3">${entry.name}</h4>
+            <p style="font-size:0.8125rem;color:var(--secondary);margin-top:0.25rem">${entry.start} - ${entry.end}</p>
+          </div>
+          <div>
+            <div style="border-top:1px solid rgba(199,196,216,0.15);padding-top:0.75rem;margin-top:0.75rem;display:flex;align-items:center;gap:0.5rem;color:#64748b"><span class="material-symbols-outlined" style="font-size:16px">location_on</span><span style="font-size:0.75rem;font-weight:500">${entry.room || 'Room TBD'}</span></div>
+            <p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.5rem">${Math.max(0, timeToMinutes(entry.start) - (now.getHours() * 60 + now.getMinutes()))} min until start</p>
+          </div>
+        </div>`).join('');
     } else {
-      html += `<div style="background:var(--surface-container-low);padding:1.5rem;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--on-surface-variant);font-size:0.875rem">Last class done!</div>`;
+      html += `<div class="dash-schedule-slide dash-schedule-slide-secondary" style="background:var(--surface-container-low);padding:1.5rem;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--on-surface-variant);font-size:0.875rem">Last class done!</div>`;
     }
     html += '</div>';
     sc.innerHTML = html;
@@ -318,10 +357,6 @@ function renderTasks() {
           <span class="material-symbols-outlined" style="font-size:18px">edit</span>
           <span class="delete-btn-text">Edit</span>
         </button>
-        <button class="delete-btn delete-btn-shifted inline-action-btn danger" type="button" onclick="deleteTask(${t.id})" title="Remove task">
-          <span class="material-symbols-outlined" style="font-size:18px">close</span>
-          <span class="delete-btn-text">Remove</span>
-        </button>
       </div>
     </div>`).join('');
 }
@@ -339,6 +374,7 @@ function deleteTask(id) {
 function updateTaskModal(mode = 'add') {
   document.getElementById('task-modal-title').textContent = mode === 'edit' ? 'Edit Task' : 'New Task';
   document.getElementById('task-modal-save-btn').textContent = mode === 'edit' ? 'Save Changes' : 'Add';
+  document.getElementById('task-modal-delete-btn').style.display = mode === 'edit' ? 'block' : 'none';
 }
 function openAddTask() {
   editingTaskId = null;
@@ -368,6 +404,13 @@ function saveTask() {
   editingTaskId = null;
   updateTaskModal('add');
   closeModal('modal-task'); renderTasks(); showToast('Task saved');
+}
+function deleteTaskFromModal() {
+  if (!editingTaskId) return;
+  deleteTask(editingTaskId);
+  editingTaskId = null;
+  updateTaskModal('add');
+  closeModal('modal-task');
 }
 
 // ==================== ASSIGNMENTS ====================
@@ -450,94 +493,144 @@ function saveAssignment() {
 }
 
 // ==================== TIMETABLE ====================
-let selectedDay = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
-if (!['Monday','Tuesday','Wednesday','Thursday','Friday'].includes(selectedDay)) selectedDay = 'Monday';
+const TIMETABLE_DAYS = [
+  { key: 'Monday', label: 'Mon' },
+  { key: 'Tuesday', label: 'Tue' },
+  { key: 'Wednesday', label: 'Wed' },
+  { key: 'Thursday', label: 'Thu' },
+  { key: 'Friday', label: 'Fri' },
+  { key: 'Saturday', label: 'Sat' },
+];
+let selectedDay = 'Monday';
+
+function updateTimetableStatusTime() {
+  const statusTime = document.getElementById('tt-status-time');
+  if (!statusTime) return;
+  statusTime.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+function timeToMinutes(value) {
+  const [hours, mins] = String(value || '00:00').split(':').map(Number);
+  return (hours || 0) * 60 + (mins || 0);
+}
+function formatMinutesLabel(totalMinutes) {
+  return `${Math.max(0, totalMinutes)} min`;
+}
+function getSessionType(name, room) {
+  const source = `${name || ''} ${room || ''}`.toLowerCase();
+  if (source.includes('lab')) return 'Lab';
+  if (source.includes('seminar')) return 'Seminar';
+  if (source.includes('workshop')) return 'Workshop';
+  return 'Lecture';
+}
+function getSubjectTheme(name = '') {
+  const lower = name.toLowerCase();
+  if (lower.includes('data structures') || lower.includes('dsa')) {
+    return { accent: '#6C63FF', tagBg: 'rgba(108,99,255,0.15)', tagText: '#8B84FF', glow: 'rgba(108,99,255,0.12)' };
+  }
+  if (lower.includes('software engineering') || lower.includes('software eng') || lower === 'se') {
+    return { accent: '#2ED8B6', tagBg: 'rgba(46,216,182,0.12)', tagText: '#2ED8B6', glow: 'rgba(46,216,182,0.12)' };
+  }
+  if (lower.includes('philosophy')) {
+    return { accent: '#FF6B6B', tagBg: 'rgba(255,107,107,0.12)', tagText: '#FF6B6B', glow: 'rgba(255,107,107,0.12)' };
+  }
+  const fallbackThemes = [
+    { accent: '#6C63FF', tagBg: 'rgba(108,99,255,0.15)', tagText: '#8B84FF', glow: 'rgba(108,99,255,0.12)' },
+    { accent: '#2ED8B6', tagBg: 'rgba(46,216,182,0.12)', tagText: '#2ED8B6', glow: 'rgba(46,216,182,0.12)' },
+    { accent: '#FF6B6B', tagBg: 'rgba(255,107,107,0.12)', tagText: '#FF6B6B', glow: 'rgba(255,107,107,0.12)' },
+  ];
+  const hash = Array.from(lower || 'studyhub').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return fallbackThemes[hash % fallbackThemes.length];
+}
+function getScheduleDisplayName(name = '') {
+  const lower = name.toLowerCase();
+  if (lower.includes('data structures')) return 'DSA';
+  if (lower.includes('software engineering')) return 'Software Eng';
+  return name;
+}
+function buildTimetableItems(classes) {
+  const items = [];
+  classes.forEach((entry, index) => {
+    items.push({ type: 'class', value: entry });
+    const next = classes[index + 1];
+    if (!next) return;
+    const gap = timeToMinutes(next.start) - timeToMinutes(entry.end);
+    if (gap > 0) items.push({ type: 'free', minutes: gap });
+  });
+  return items;
+}
 
 function renderTimetable() {
-  // Day pills
+  updateTimetableStatusTime();
   const dp = document.getElementById('day-pills');
-  dp.innerHTML = ['Monday','Tuesday','Wednesday','Thursday','Friday'].map(d =>
-    `<button class="day-pill ${d===selectedDay?'active':''}" onclick="selectDay('${d}')">${d}</button>`
+  dp.innerHTML = TIMETABLE_DAYS.map(day =>
+    `<button class="day-pill ${day.key === selectedDay ? 'active' : ''}" type="button" onclick="selectDay('${day.key}')" aria-label="${day.key} schedule">${day.label}</button>`
   ).join('');
-  // Timeline
+
   const tt = load(KEYS.timetable);
   const classes = (tt[selectedDay] || []).sort((a,b) => a.start.localeCompare(b.start));
   const el = document.getElementById('tt-timeline');
+
   if (classes.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--on-surface-variant)"><span class="material-symbols-outlined" style="font-size:2.5rem;display:block;margin-bottom:0.5rem">event_busy</span>No classes on ' + selectedDay + '</div>';
+    el.innerHTML = `<div class="tt-empty-day">
+      <span class="material-symbols-outlined">event_available</span>
+      <p>No sessions on ${escapeHtml(selectedDay)}</p>
+      <p>Use this free day to review notes, prep assignments, or add a new class.</p>
+    </div>`;
   } else {
     const now = new Date();
     const isToday = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()] === selectedDay;
     const nowMins = now.getHours() * 60 + now.getMinutes();
-    el.innerHTML = '<div class="timeline-line"></div>' + classes.map(c => {
-      const [sh, sm] = c.start.split(':').map(Number);
-      const [eh, em] = c.end.split(':').map(Number);
-      const startMins = sh * 60 + sm, endMins = eh * 60 + em;
-      const isCurrent = isToday && nowMins >= startMins && nowMins <= endMins;
-      const prog = isCurrent ? Math.round(((nowMins - startMins) / (endMins - startMins)) * 100) : 0;
-      const remaining = isCurrent ? endMins - nowMins : 0;
-      if (isCurrent) {
-        return `<div style="position:relative;margin-bottom:1.5rem">
-          <div class="timeline-dot current" style="top:50%;transform:translateY(-50%)"></div>
-          <div class="card" style="border:1.5px solid rgba(79,70,229,0.15);box-shadow:0 4px 24px rgba(20,27,43,0.06);padding:1.25rem">
-            <div style="display:flex;align-items:start;gap:1rem">
-              <div style="width:5rem;flex-shrink:0"><span style="font-size:0.75rem;font-weight:700;color:var(--primary);display:block">${c.start}</span><span style="font-size:0.75rem;color:rgba(53,37,205,0.5)">${c.end}</span></div>
-              <div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:700">${c.name}</h3><span class="badge badge-live">Current</span></div>
-              <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.25rem;color:var(--primary)"><span class="material-symbols-outlined" style="font-size:14px">room</span><span style="font-size:0.75rem;font-weight:600">${c.room}</span></div>
-              <div style="margin-top:1rem;height:6px;background:#f1f5f9;border-radius:4px;overflow:hidden"><div style="width:${prog}%;height:100%;background:var(--primary);border-radius:4px;transition:width 1s"></div></div>
-              <p style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em;margin-top:0.5rem">${remaining} min remaining</p></div>
-            </div>
-            <div class="card-actions">
-              <button class="inline-action-btn" type="button" onclick="editClass('${selectedDay}',${c.id})" title="Edit lecture">
-                <span class="material-symbols-outlined" style="font-size:18px">edit</span>
-                <span class="delete-btn-text">Edit</span>
-              </button>
-              <button class="delete-btn delete-btn-shifted inline-action-btn danger" type="button" onclick="deleteClass('${selectedDay}',${c.id})" title="Remove lecture">
-                <span class="material-symbols-outlined" style="font-size:18px">close</span>
-                <span class="delete-btn-text">Remove</span>
-              </button>
-            </div>
-          </div></div>`;
+    el.innerHTML = buildTimetableItems(classes).map(item => {
+      if (item.type === 'free') {
+        return `<div class="tt-free-slot">&mdash; Free slot &middot; ${formatMinutesLabel(item.minutes)} &mdash;</div>`;
       }
-      return `<div style="position:relative;margin-bottom:1.5rem">
-        <div class="timeline-dot" style="top:1rem"></div>
-        <div class="card" style="background:var(--surface-container-low);border:none;position:relative">
-          <div style="display:flex;align-items:start;gap:1rem">
-            <div style="width:5rem;flex-shrink:0"><span style="font-size:0.75rem;font-weight:700;color:#94a3b8;display:block">${c.start}</span><span style="font-size:0.75rem;color:#cbd5e1">${c.end}</span></div>
-            <div><h3 style="font-weight:600">${c.name}</h3><div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.25rem;color:#94a3b8"><span class="material-symbols-outlined" style="font-size:14px">room</span><span style="font-size:0.75rem;font-weight:500">${c.room}</span></div></div>
+
+      const cls = item.value;
+      const startMins = timeToMinutes(cls.start);
+      const endMins = timeToMinutes(cls.end);
+      const isCurrent = isToday && nowMins >= startMins && nowMins < endMins;
+      const theme = getSubjectTheme(cls.name);
+      const sessionType = getSessionType(cls.name, cls.room);
+      const duration = formatMinutesLabel(endMins - startMins);
+      return `<article class="tt-class-card ${isCurrent ? 'current' : ''}" style="--subject-accent:${theme.accent};--subject-glow:${theme.glow};--tag-bg:${theme.tagBg};--tag-text:${theme.tagText}">
+        <div class="tt-card-grid">
+          <div class="tt-time-col">
+            <span class="tt-time-start">${escapeHtml(cls.start)}</span>
+            <span class="tt-time-end">${escapeHtml(cls.end)}</span>
           </div>
-          <div class="card-actions">
-            <button class="inline-action-btn" type="button" onclick="editClass('${selectedDay}',${c.id})" title="Edit lecture">
-              <span class="material-symbols-outlined" style="font-size:18px">edit</span>
-              <span class="delete-btn-text">Edit</span>
-            </button>
-            <button class="delete-btn delete-btn-shifted inline-action-btn danger" type="button" onclick="deleteClass('${selectedDay}',${c.id})" title="Remove lecture">
-              <span class="material-symbols-outlined" style="font-size:18px">close</span>
-              <span class="delete-btn-text">Remove</span>
-            </button>
+          <div class="tt-divider" aria-hidden="true">
+            <span class="tt-divider-dot"></span>
+            <span class="tt-divider-line"></span>
+            <span class="tt-divider-dot"></span>
           </div>
-        </div></div>`;
+          <div class="tt-info-col">
+            <h3 class="tt-subject">${escapeHtml(getScheduleDisplayName(cls.name))}</h3>
+            <div class="tt-location-row">
+              <span class="material-symbols-outlined">location_on</span>
+              <span>${escapeHtml(cls.room || 'Room TBD')}</span>
+            </div>
+            <div class="tt-card-footer">
+              <span class="tt-type-tag">${escapeHtml(sessionType)}</span>
+              <div class="tt-card-actions">
+                <button class="tt-edit-btn" type="button" onclick="editClass('${selectedDay}',${cls.id})" title="Edit lecture">
+                  <span class="material-symbols-outlined">edit</span>
+                  <span>Edit</span>
+                </button>
+                <span class="tt-duration">${escapeHtml(duration)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>`;
     }).join('');
   }
-  // Insights
-  const allClasses = tt;
-  let total = 0, mins = 0;
-  ['Monday','Tuesday','Wednesday','Thursday','Friday'].forEach(d => {
-    (allClasses[d]||[]).forEach(c => {
-      total++;
-      const [sh,sm] = c.start.split(':').map(Number);
-      const [eh,em] = c.end.split(':').map(Number);
-      mins += (eh*60+em) - (sh*60+sm);
-    });
-  });
-  document.getElementById('tt-total').textContent = total + ' / week';
-  document.getElementById('tt-hours').textContent = (mins/60).toFixed(1) + 'h';
 }
 let editingClassState = null;
 function selectDay(d) { selectedDay = d; renderTimetable(); }
 function updateClassModal(mode = 'add') {
   document.getElementById('class-modal-title').textContent = mode === 'edit' ? 'Edit Lecture' : 'Add Class';
   document.getElementById('class-modal-save-btn').textContent = mode === 'edit' ? 'Save Changes' : 'Save';
+  document.getElementById('class-modal-delete-btn').style.display = mode === 'edit' ? 'block' : 'none';
 }
 function openAddClass() {
   editingClassState = null;
@@ -587,6 +680,13 @@ function deleteClass(day, id) {
   if (tt[day]) tt[day] = tt[day].filter(c => c.id !== id);
   save(KEYS.timetable, tt);
   renderTimetable(); showToast('Class removed');
+}
+function deleteClassFromModal() {
+  if (!editingClassState) return;
+  deleteClass(editingClassState.day, editingClassState.id);
+  editingClassState = null;
+  updateClassModal('add');
+  closeModal('modal-class');
 }
 
 // ==================== NOTES ====================
@@ -1187,6 +1287,11 @@ function getNextClass(classes) {
     return sh*60+sm > mins;
   });
 }
+function getUpcomingClasses(classes, limit = 2) {
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  return classes.filter(c => timeToMinutes(c.start) > mins).slice(0, limit);
+}
 function getClassProgress(c) {
   const now = new Date(), mins = now.getHours()*60 + now.getMinutes();
   const [sh,sm] = c.start.split(':').map(Number);
@@ -1270,7 +1375,7 @@ function toggleTheme() {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = isDark ? '#3525cd' : '#111318';
   renderProfile();
-  showToast(isDark ? '☀️ Light mode' : '🌙 Dark mode');
+  hideToast();
 }
 
 function loadTheme() {
@@ -1313,6 +1418,9 @@ const startTab = params.get('tab');
 loadTheme();
 seedDefaults();
 normalizeLibraryData();
+updateScreenMode(startTab === 'timetable' ? 'timetable' : 'dashboard');
+updateTimetableStatusTime();
+setInterval(updateTimetableStatusTime, 30000);
 if (startTab && ['dashboard','assignments','timetable','notes','profile'].includes(startTab)) {
   const idx = ['dashboard','assignments','timetable','notes','profile'].indexOf(startTab);
   switchTab(startTab, document.querySelectorAll('.nav-item')[idx]);
