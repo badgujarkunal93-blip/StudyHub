@@ -239,10 +239,10 @@
 <!-- Add Task Modal -->
 <div class="modal-overlay" id="modal-task">
   <div class="modal">
-    <h2>New Task</h2>
+    <h2 id="task-modal-title">New Task</h2>
     <div class="form-group"><label>Task</label><input class="form-input" id="inp-task-title" placeholder="e.g. Review notes"></div>
     <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
-      <button class="btn-primary" style="flex:1" onclick="saveTask()">Add</button>
+      <button class="btn-primary" id="task-modal-save-btn" style="flex:1" onclick="saveTask()">Add</button>
       <button class="btn-primary" style="flex:1;background:var(--surface-container-high);color:var(--on-surface)" onclick="closeModal('modal-task')">Cancel</button>
     </div>
   </div>
@@ -251,7 +251,7 @@
 <!-- Add Class Modal -->
 <div class="modal-overlay" id="modal-class">
   <div class="modal">
-    <h2>Add Class</h2>
+    <h2 id="class-modal-title">Add Class</h2>
     <div class="form-group"><label>Subject</label><input class="form-input" id="inp-class-name" placeholder="e.g. Data Structures"></div>
     <div class="form-group"><label>Room / Location</label><input class="form-input" id="inp-class-room" placeholder="e.g. Lab 402"></div>
     <div class="grid-2">
@@ -262,7 +262,7 @@
       <select class="form-input" id="inp-class-day"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select>
     </div>
     <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
-      <button class="btn-primary" style="flex:1" onclick="saveClass()">Save</button>
+      <button class="btn-primary" id="class-modal-save-btn" style="flex:1" onclick="saveClass()">Save</button>
       <button class="btn-primary" style="flex:1;background:var(--surface-container-high);color:var(--on-surface)" onclick="closeModal('modal-class')">Cancel</button>
     </div>
   </div>

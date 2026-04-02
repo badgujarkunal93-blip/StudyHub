@@ -299,6 +299,7 @@ function renderDashboard() {
 }
 
 // ==================== TASKS ====================
+let editingTaskId = null;
 function renderTasks() {
   const tasks = load(KEYS.tasks);
   const el = document.getElementById('dash-tasks');
@@ -313,7 +314,11 @@ function renderTasks() {
         <span class="task-label">${t.text}</span>
       </button>
       <div class="task-actions">
-        <button class="delete-btn delete-btn-shifted" type="button" onclick="deleteTask(${t.id})" title="Remove task">
+        <button class="inline-action-btn" type="button" onclick="editTask(${t.id})" title="Edit task">
+          <span class="material-symbols-outlined" style="font-size:18px">edit</span>
+          <span class="delete-btn-text">Edit</span>
+        </button>
+        <button class="delete-btn delete-btn-shifted inline-action-btn danger" type="button" onclick="deleteTask(${t.id})" title="Remove task">
           <span class="material-symbols-outlined" style="font-size:18px">close</span>
           <span class="delete-btn-text">Remove</span>
         </button>
@@ -331,14 +336,38 @@ function deleteTask(id) {
   save(KEYS.tasks, load(KEYS.tasks).filter(t => t.id !== id));
   renderTasks(); showToast('Task removed');
 }
-function openAddTask() { document.getElementById('inp-task-title').value = ''; openModal('modal-task'); }
+function updateTaskModal(mode = 'add') {
+  document.getElementById('task-modal-title').textContent = mode === 'edit' ? 'Edit Task' : 'New Task';
+  document.getElementById('task-modal-save-btn').textContent = mode === 'edit' ? 'Save Changes' : 'Add';
+}
+function openAddTask() {
+  editingTaskId = null;
+  document.getElementById('inp-task-title').value = '';
+  updateTaskModal('add');
+  openModal('modal-task');
+}
+function editTask(id) {
+  const task = load(KEYS.tasks).find(t => t.id === id);
+  if (!task) return;
+  editingTaskId = id;
+  document.getElementById('inp-task-title').value = task.text || '';
+  updateTaskModal('edit');
+  openModal('modal-task');
+}
 function saveTask() {
   const text = document.getElementById('inp-task-title').value.trim();
   if (!text) return showToast('Enter a task name');
   const tasks = load(KEYS.tasks);
-  tasks.push({ id: Date.now(), text, done: false });
+  if (editingTaskId) {
+    const task = tasks.find(t => t.id === editingTaskId);
+    if (task) task.text = text;
+  } else {
+    tasks.push({ id: Date.now(), text, done: false });
+  }
   save(KEYS.tasks, tasks);
-  closeModal('modal-task'); renderTasks(); showToast('Task added ✓');
+  editingTaskId = null;
+  updateTaskModal('add');
+  closeModal('modal-task'); renderTasks(); showToast('Task saved');
 }
 
 // ==================== ASSIGNMENTS ====================
@@ -459,7 +488,11 @@ function renderTimetable() {
               <p style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em;margin-top:0.5rem">${remaining} min remaining</p></div>
             </div>
             <div class="card-actions">
-              <button class="delete-btn delete-btn-shifted" type="button" onclick="deleteClass('${selectedDay}',${c.id})" title="Remove lecture">
+              <button class="inline-action-btn" type="button" onclick="editClass('${selectedDay}',${c.id})" title="Edit lecture">
+                <span class="material-symbols-outlined" style="font-size:18px">edit</span>
+                <span class="delete-btn-text">Edit</span>
+              </button>
+              <button class="delete-btn delete-btn-shifted inline-action-btn danger" type="button" onclick="deleteClass('${selectedDay}',${c.id})" title="Remove lecture">
                 <span class="material-symbols-outlined" style="font-size:18px">close</span>
                 <span class="delete-btn-text">Remove</span>
               </button>
@@ -474,7 +507,11 @@ function renderTimetable() {
             <div><h3 style="font-weight:600">${c.name}</h3><div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.25rem;color:#94a3b8"><span class="material-symbols-outlined" style="font-size:14px">room</span><span style="font-size:0.75rem;font-weight:500">${c.room}</span></div></div>
           </div>
           <div class="card-actions">
-            <button class="delete-btn delete-btn-shifted" type="button" onclick="deleteClass('${selectedDay}',${c.id})" title="Remove lecture">
+            <button class="inline-action-btn" type="button" onclick="editClass('${selectedDay}',${c.id})" title="Edit lecture">
+              <span class="material-symbols-outlined" style="font-size:18px">edit</span>
+              <span class="delete-btn-text">Edit</span>
+            </button>
+            <button class="delete-btn delete-btn-shifted inline-action-btn danger" type="button" onclick="deleteClass('${selectedDay}',${c.id})" title="Remove lecture">
               <span class="material-symbols-outlined" style="font-size:18px">close</span>
               <span class="delete-btn-text">Remove</span>
             </button>
@@ -496,11 +533,31 @@ function renderTimetable() {
   document.getElementById('tt-total').textContent = total + ' / week';
   document.getElementById('tt-hours').textContent = (mins/60).toFixed(1) + 'h';
 }
+let editingClassState = null;
 function selectDay(d) { selectedDay = d; renderTimetable(); }
+function updateClassModal(mode = 'add') {
+  document.getElementById('class-modal-title').textContent = mode === 'edit' ? 'Edit Lecture' : 'Add Class';
+  document.getElementById('class-modal-save-btn').textContent = mode === 'edit' ? 'Save Changes' : 'Save';
+}
 function openAddClass() {
+  editingClassState = null;
   ['inp-class-name','inp-class-room'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('inp-class-start').value = ''; document.getElementById('inp-class-end').value = '';
   document.getElementById('inp-class-day').value = selectedDay;
+  updateClassModal('add');
+  openModal('modal-class');
+}
+function editClass(day, id) {
+  const tt = load(KEYS.timetable);
+  const cls = (tt[day] || []).find(c => c.id === id);
+  if (!cls) return;
+  editingClassState = { day, id };
+  document.getElementById('inp-class-name').value = cls.name || '';
+  document.getElementById('inp-class-room').value = cls.room || '';
+  document.getElementById('inp-class-start').value = cls.start || '';
+  document.getElementById('inp-class-end').value = cls.end || '';
+  document.getElementById('inp-class-day').value = day;
+  updateClassModal('edit');
   openModal('modal-class');
 }
 function saveClass() {
@@ -512,9 +569,18 @@ function saveClass() {
   if (!name || !start || !end) return showToast('Fill in all fields');
   const tt = load(KEYS.timetable);
   if (!tt[day]) tt[day] = [];
-  tt[day].push({ id: Date.now(), name, room: room || 'TBD', start, end });
+  if (editingClassState) {
+    const previousDay = editingClassState.day;
+    const classId = editingClassState.id;
+    if (tt[previousDay]) tt[previousDay] = tt[previousDay].filter(c => c.id !== classId);
+    tt[day].push({ id: classId, name, room: room || 'TBD', start, end });
+  } else {
+    tt[day].push({ id: Date.now(), name, room: room || 'TBD', start, end });
+  }
   save(KEYS.timetable, tt);
-  selectedDay = day; closeModal('modal-class'); renderTimetable(); showToast('Class added ✓');
+  editingClassState = null;
+  updateClassModal('add');
+  selectedDay = day; closeModal('modal-class'); renderTimetable(); showToast('Lecture saved');
 }
 function deleteClass(day, id) {
   const tt = load(KEYS.timetable);

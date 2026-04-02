@@ -206,7 +206,10 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 .delete-btn { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.25rem; border-radius: 0.25rem; opacity: 0; transition: all 0.15s; display: flex; }
 .card:hover .delete-btn, .task-row:hover .delete-btn { opacity: 1; }
 .delete-btn:hover { color: var(--error); }
-.delete-btn-shifted { opacity: 1; align-items: center; gap: 0.35rem; margin-left: auto; padding: 0.45rem 0.75rem; border-radius: 999px; background: rgba(148,163,184,0.08); }
+.inline-action-btn { opacity: 1; align-items: center; gap: 0.35rem; padding: 0.45rem 0.75rem; border-radius: 999px; background: rgba(148,163,184,0.08); color: #64748b; border: none; cursor: pointer; display: inline-flex; transition: all 0.15s; font: inherit; }
+.inline-action-btn:hover { background: rgba(100,116,139,0.12); color: var(--on-surface); }
+.inline-action-btn.danger:hover { background: rgba(186,26,26,0.08); color: var(--error); }
+.delete-btn-shifted { opacity: 1; align-items: center; gap: 0.35rem; padding: 0.45rem 0.75rem; border-radius: 999px; background: rgba(148,163,184,0.08); }
 .delete-btn-shifted:hover { background: rgba(186,26,26,0.08); }
 .delete-btn-text { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; }
 
@@ -216,8 +219,8 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 .task-row.done .task-label { text-decoration: line-through; }
 .task-main { width: 100%; display: flex; align-items: center; gap: 0.75rem; background: none; border: none; padding: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; }
 .task-label { flex: 1; font-size: 0.875rem; font-weight: 500; }
-.task-actions { display: flex; justify-content: flex-end; padding-left: 2rem; }
-.card-actions { display: flex; justify-content: flex-end; margin-top: 0.9rem; padding-top: 0.75rem; border-top: 1px solid rgba(199,196,216,0.35); }
+.task-actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-left: 2rem; flex-wrap: wrap; }
+.card-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.9rem; padding-top: 0.75rem; border-top: 1px solid rgba(199,196,216,0.35); flex-wrap: wrap; }
 
 /* ========== PROFILE ========== */
 .profile-avatar-lg { width: 5rem; height: 5rem; border-radius: 50%; background: var(--surface-container-high); overflow: hidden; margin: 0 auto 1rem; border: 3px solid var(--primary); }
