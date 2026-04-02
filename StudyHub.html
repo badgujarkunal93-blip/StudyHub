@@ -24,7 +24,10 @@
     <div class="avatar" style="cursor:pointer" onclick="switchTab('profile',document.querySelectorAll('.nav-item')[4])"><img id="header-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7WdW14jGcCu3y5v_t11VevowASdRxNJq6lLT3Gy8QtwLVIiKDe9gXEl8WNdG3Mump67Xxb9wtZ4eibvZ_m1chaAdabOEw9Ke1kdgA2dqi_8bJbR-uinBEW1I-UB79ZnZgD9Excw5S593OXBsbVCawZ3ztz5ogujYEnhvcNfQaj_NtTdjzxINSa0o274SDBhzRcauK2-H5D3sA1YINq4aJHrAdk76Pqrs-EYNkfifLSnx_uuJeQJZW9FrBIBWvdViAyuzQ1ScKHA" alt="Profile"></div>
     <span class="logo">StudyHub</span>
   </div>
-  <button class="icon-btn" onclick="showToast('Search coming soon!')"><span class="material-symbols-outlined">search</span></button>
+  <div style="display:flex;align-items:center;gap:0.25rem">
+    <button class="icon-btn" onclick="showToast('Search coming soon!')"><span class="material-symbols-outlined">search</span></button>
+    <button class="icon-btn" onclick="openNotificationsModal()" title="Notifications"><span class="material-symbols-outlined">notifications</span></button>
+  </div>
 </header>
 
 <!-- ============ DASHBOARD ============ -->
@@ -105,7 +108,7 @@
         <button class="tt-header-btn" type="button" onclick="showToast('Search coming soon!')" aria-label="Search schedule">
           <span class="material-symbols-outlined">search</span>
         </button>
-        <button class="tt-header-btn" type="button" onclick="showToast('Notifications coming soon!')" aria-label="Open notifications">
+        <button class="tt-header-btn" type="button" onclick="openNotificationsModal()" aria-label="Open notifications">
           <span class="material-symbols-outlined">notifications</span>
         </button>
       </div>
@@ -151,7 +154,15 @@
     <!-- Folders -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
       <h2 class="section-title" style="margin:0" id="folders-section-title">Folders</h2>
-      <button class="icon-btn" onclick="openAddFolder()"><span class="material-symbols-outlined">create_new_folder</span></button>
+      <div style="display:flex;align-items:center;gap:0.35rem">
+        <button class="icon-btn" id="notes-edit-folder-btn" onclick="openEditFolder()" style="display:none" title="Rename or move current folder">
+          <span class="material-symbols-outlined">drive_file_rename_outline</span>
+        </button>
+        <button class="icon-btn" id="notes-delete-folder-btn" onclick="confirmDeleteFolder()" style="display:none;color:var(--error)" title="Delete current folder">
+          <span class="material-symbols-outlined">delete</span>
+        </button>
+        <button class="icon-btn" onclick="openAddFolder()"><span class="material-symbols-outlined">create_new_folder</span></button>
+      </div>
     </div>
     <div id="notes-folders" class="folder-grid" style="margin-bottom:2rem"></div>
     <!-- Recent -->
@@ -297,12 +308,73 @@
 <!-- Add Folder Modal -->
 <div class="modal-overlay" id="modal-folder">
   <div class="modal">
-    <h2>New Folder</h2>
+    <h2 id="folder-modal-title">New Folder</h2>
     <div class="form-group"><label>Folder Name</label><input class="form-input" id="inp-folder-name" placeholder="e.g. Chemistry"></div>
     <div class="form-group"><label>Parent Folder</label><select class="form-input" id="inp-folder-parent"></select></div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap">
+      <button class="btn-primary" id="folder-modal-save-btn" style="flex:1;min-width:120px" onclick="saveFolder()">Create</button>
+      <button class="btn-primary" style="flex:1;min-width:120px;background:var(--surface-container-high);color:var(--on-surface)" onclick="closeModal('modal-folder')">Cancel</button>
+      <button class="btn-primary" id="folder-modal-delete-btn" style="display:none;flex-basis:100%;background:var(--error);color:#fff" onclick="deleteFolderFromModal()">Delete Folder</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename / Move Item Modal -->
+<div class="modal-overlay" id="modal-item">
+  <div class="modal">
+    <h2 id="item-modal-title">Rename & Move Item</h2>
+    <div class="form-group"><label>Title</label><input class="form-input" id="inp-item-title" placeholder="e.g. Thermodynamics Notes"></div>
+    <div class="form-group"><label>Folder</label><select class="form-input" id="inp-item-folder"></select></div>
     <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
-      <button class="btn-primary" style="flex:1" onclick="saveFolder()">Create</button>
-      <button class="btn-primary" style="flex:1;background:var(--surface-container-high);color:var(--on-surface)" onclick="closeModal('modal-folder')">Cancel</button>
+      <button class="btn-primary" style="flex:1" onclick="saveLibraryItemChanges()">Save</button>
+      <button class="btn-primary" style="flex:1;background:var(--surface-container-high);color:var(--on-surface)" onclick="closeModal('modal-item')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notifications Modal -->
+<div class="modal-overlay" id="modal-notifications">
+  <div class="modal">
+    <h2>Notifications</h2>
+    <div class="settings-group" style="margin-bottom:1.5rem">
+      <div class="settings-row" style="margin-bottom:0">
+        <div class="settings-row-left">
+          <div class="settings-row-icon" style="background:rgba(79,70,229,0.08)"><span class="material-symbols-outlined" style="color:var(--primary);font-size:20px">notifications_active</span></div>
+          <div>
+            <p style="font-weight:600;font-size:0.9375rem">Browser Notifications</p>
+            <p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.125rem" id="notif-permission-status">Not enabled</p>
+          </div>
+        </div>
+        <button class="btn-primary" id="notif-enable-btn" style="padding:0.55rem 0.9rem;font-size:0.75rem" onclick="requestNotificationPermission()">Enable</button>
+      </div>
+    </div>
+    <div class="settings-group" style="margin-bottom:1.5rem">
+      <p class="settings-group-title" style="margin-bottom:0.5rem">Reminder Settings</p>
+      <div class="settings-row" style="margin-bottom:0.5rem" onclick="toggleNotificationSetting('classes')">
+        <div class="settings-row-left">
+          <div class="settings-row-icon" style="background:rgba(46,216,182,0.12)"><span class="material-symbols-outlined" style="color:#10b981;font-size:20px">schedule</span></div>
+          <div><p style="font-weight:600;font-size:0.9375rem">Upcoming Classes</p><p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.125rem">Alert 15 minutes before class starts</p></div>
+        </div>
+        <button class="theme-switch" id="notif-classes-toggle" type="button" onclick="event.stopPropagation();toggleNotificationSetting('classes')"></button>
+      </div>
+      <div class="settings-row" style="margin-bottom:0" onclick="toggleNotificationSetting('assignments')">
+        <div class="settings-row-left">
+          <div class="settings-row-icon" style="background:rgba(255,107,107,0.12)"><span class="material-symbols-outlined" style="color:#ef4444;font-size:20px">assignment_late</span></div>
+          <div><p style="font-weight:600;font-size:0.9375rem">Assignment Deadlines</p><p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.125rem">Alert 1 hour before due time and when overdue</p></div>
+        </div>
+        <button class="theme-switch" id="notif-assignments-toggle" type="button" onclick="event.stopPropagation();toggleNotificationSetting('assignments')"></button>
+      </div>
+    </div>
+    <div class="settings-group" style="margin-bottom:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.75rem">
+        <p class="settings-group-title" style="margin-bottom:0">Upcoming Alerts</p>
+        <button class="icon-btn" type="button" onclick="renderNotificationsModal()" title="Refresh alerts"><span class="material-symbols-outlined">refresh</span></button>
+      </div>
+      <div id="notif-preview-list" style="display:flex;flex-direction:column;gap:0.5rem"></div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
+      <button class="btn-primary" style="flex:1" onclick="sendTestNotification()">Send Test</button>
+      <button class="btn-primary" style="flex:1;background:var(--surface-container-high);color:var(--on-surface)" onclick="closeModal('modal-notifications')">Close</button>
     </div>
   </div>
 </div>

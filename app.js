@@ -1,11 +1,28 @@
 // ==================== DATA LAYER (localStorage) ====================
-const KEYS = { assignments: 'sh_assignments', tasks: 'sh_tasks', timetable: 'sh_timetable', notes: 'sh_notes', folders: 'sh_folders', profile: 'sh_profile' };
+const KEYS = { assignments: 'sh_assignments', tasks: 'sh_tasks', timetable: 'sh_timetable', notes: 'sh_notes', folders: 'sh_folders', profile: 'sh_profile', notifications: 'sh_notifications' };
 const FILE_DB = { name: 'studyhub_files', version: 1, store: 'files' };
 const MAX_LIBRARY_FILE_SIZE = 15 * 1024 * 1024;
 
 function load(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } }
 function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
 function createId(offset = 0) { return Date.now() + Math.floor(Math.random() * 100000) + offset; }
+function getNotificationPrefs() {
+  const defaults = { classes: true, assignments: true, sent: {} };
+  try {
+    const stored = JSON.parse(localStorage.getItem(KEYS.notifications)) || {};
+    return {
+      ...defaults,
+      ...stored,
+      sent: typeof stored.sent === 'object' && stored.sent ? stored.sent : {},
+    };
+  } catch {
+    return defaults;
+  }
+}
+function saveNotificationPrefs(data) {
+  const current = getNotificationPrefs();
+  save(KEYS.notifications, { ...current, ...data, sent: { ...(current.sent || {}), ...(data.sent || {}) } });
+}
 function parseNullableId(value) {
   if (value === '' || value === null || value === undefined || value === 'null') return null;
   const num = Number(value);
@@ -841,6 +858,9 @@ document.getElementById('camera-input').addEventListener('change', function(e) {
 let currentFolderId = null;
 let pendingUploadFolderId = null;
 let filesDbPromise = null;
+let editingFolderId = null;
+let editingLibraryItemId = null;
+let notificationCheckInterval = null;
 
 function isNoteItem(item) {
   return (item.type || 'note') === 'note';
@@ -943,7 +963,17 @@ function renderFolderCards(folders, items) {
     const bg = `${folder.color || '#3b82f6'}15`;
     const parentPath = currentFolderId !== null ? getFolderPathLabel(folder.parentId, folders) : '';
     return `<div class="folder-card" onclick="openFolder(${folder.id})">
-      <div class="folder-icon" style="background:${bg}"><span class="material-symbols-outlined filled" style="color:${folder.color}">${folder.icon || 'folder'}</span></div>
+      <div class="folder-card-top">
+        <div class="folder-icon" style="background:${bg}"><span class="material-symbols-outlined filled" style="color:${folder.color}">${folder.icon || 'folder'}</span></div>
+        <div class="folder-card-actions">
+          <button class="folder-card-action" type="button" onclick="event.stopPropagation();openEditFolder(${folder.id})" title="Rename or move folder">
+            <span class="material-symbols-outlined" style="font-size:18px">drive_file_rename_outline</span>
+          </button>
+          <button class="folder-card-action folder-card-delete" type="button" onclick="event.stopPropagation();confirmDeleteFolder(${folder.id})" title="Delete folder">
+            <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+          </button>
+        </div>
+      </div>
       <h4 style="font-weight:600;font-size:1.05rem">${escapeHtml(folder.name)}</h4>
       <p class="folder-card-meta">${escapeHtml(getFolderSummary(folder.id, folders, items))}</p>
       ${parentPath ? `<p class="folder-card-path">${escapeHtml(parentPath)}</p>` : ''}
@@ -974,7 +1004,12 @@ function renderItemCards(items, folders, options = {}) {
       <div class="library-body">
         <div class="library-title-row">
           <h4 class="library-title">${escapeHtml(item.title || 'Untitled')}</h4>
-          <span class="library-label">${escapeHtml(getItemTypeLabel(item))}</span>
+          <div class="library-actions">
+            <span class="library-label">${escapeHtml(getItemTypeLabel(item))}</span>
+            <button class="library-manage-btn" type="button" onclick="event.stopPropagation();openLibraryItemManager(${item.id})" title="Rename or move">
+              <span class="material-symbols-outlined" style="font-size:18px">drive_file_rename_outline</span>
+            </button>
+          </div>
         </div>
         <p class="library-meta">${escapeHtml(metaParts.join(' / '))}</p>
       </div>
@@ -1016,6 +1051,20 @@ async function getStoredFile(id) {
     request.onsuccess = () => resolve(request.result ? request.result.blob : null);
     request.onerror = () => reject(request.error || new Error('Could not load file'));
   });
+}
+async function deleteStoredFile(id) {
+  if (!id) return;
+  try {
+    const db = await openFilesDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(FILE_DB.store, 'readwrite');
+      tx.objectStore(FILE_DB.store).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error('Could not delete file'));
+    });
+  } catch {
+    return null;
+  }
 }
 async function clearStoredFiles() {
   try {
@@ -1068,6 +1117,8 @@ function renderNotes() {
   const items = load(KEYS.notes);
   if (currentFolderId !== null && !getFolderById(currentFolderId, folders)) currentFolderId = null;
   const currentFolder = getFolderById(currentFolderId, folders);
+  const editFolderBtn = document.getElementById('notes-edit-folder-btn');
+  const deleteFolderBtn = document.getElementById('notes-delete-folder-btn');
   document.getElementById('notes-list-view').style.display = 'block';
   document.getElementById('note-editor').classList.remove('active');
   document.getElementById('notes-page-title').textContent = currentFolder ? currentFolder.name : 'Notes Vault';
@@ -1076,6 +1127,8 @@ function renderNotes() {
     : 'Capture, store, and revisit your learning.';
   document.getElementById('folders-section-title').textContent = currentFolder ? 'Subfolders' : 'Folders';
   document.getElementById('items-section-title').textContent = currentFolder ? 'Items in this folder' : 'Recent Items';
+  editFolderBtn.style.display = currentFolder ? 'inline-flex' : 'none';
+  deleteFolderBtn.style.display = currentFolder ? 'inline-flex' : 'none';
   renderBreadcrumb(currentFolder, folders);
   renderFolderCards(folders, items);
   const visibleItems = currentFolder
@@ -1209,42 +1262,163 @@ function closeNoteEditor() {
   document.getElementById('notes-list-view').style.display = 'block';
   renderNotes();
 }
-function populateFolderParentOptions(selectedParentId = currentFolderId) {
+function updateFolderModal(mode = 'add') {
+  document.getElementById('folder-modal-title').textContent = mode === 'edit' ? 'Rename & Move Folder' : 'New Folder';
+  document.getElementById('folder-modal-save-btn').textContent = mode === 'edit' ? 'Save Changes' : 'Create';
+  document.getElementById('folder-modal-delete-btn').style.display = mode === 'edit' ? 'block' : 'none';
+}
+function populateFolderParentOptions(selectedParentId = currentFolderId, excludeFolderId = null) {
   const folders = load(KEYS.folders);
   const selectedId = parseNullableId(selectedParentId);
+  const excludedIds = excludeFolderId === null ? new Set() : new Set(getFolderDescendantIds(excludeFolderId, folders));
   const parentSelect = document.getElementById('inp-folder-parent');
-  parentSelect.innerHTML = '<option value="">Top level</option>' + flattenFolders(null, folders).map(({ folder, depth }) => {
+  parentSelect.innerHTML = '<option value="">Top level</option>' + flattenFolders(null, folders)
+    .filter(({ folder }) => !excludedIds.has(folder.id))
+    .map(({ folder, depth }) => {
     const prefix = '&nbsp;'.repeat(depth * 4);
     return `<option value="${folder.id}" ${folder.id === selectedId ? 'selected' : ''}>${prefix}${escapeHtml(folder.name)}</option>`;
   }).join('');
 }
 function openAddFolder(parentId = currentFolderId) {
+  editingFolderId = null;
   document.getElementById('inp-folder-name').value = '';
-  populateFolderParentOptions(parentId);
+  populateFolderParentOptions(parentId, null);
+  updateFolderModal('add');
   openModal('modal-folder');
+}
+function openEditFolder(folderId = currentFolderId) {
+  const folder = getFolderById(folderId);
+  if (!folder) return;
+  editingFolderId = folder.id;
+  document.getElementById('inp-folder-name').value = folder.name || '';
+  populateFolderParentOptions(folder.parentId, folder.id);
+  updateFolderModal('edit');
+  openModal('modal-folder');
+}
+function getFolderDescendantIds(folderId, folders = load(KEYS.folders), seen = new Set()) {
+  const normalizedId = parseNullableId(folderId);
+  if (normalizedId === null || seen.has(normalizedId)) return [];
+  seen.add(normalizedId);
+  const childIds = folders
+    .filter(folder => parseNullableId(folder.parentId) === normalizedId)
+    .map(folder => folder.id);
+  return [normalizedId, ...childIds.flatMap(childId => getFolderDescendantIds(childId, folders, seen))];
+}
+function getFolderDeleteSummary(folderId, folders = load(KEYS.folders), items = load(KEYS.notes)) {
+  const folder = getFolderById(folderId, folders);
+  if (!folder) return null;
+  const allFolderIds = getFolderDescendantIds(folder.id, folders);
+  const folderIdSet = new Set(allFolderIds);
+  const subfolderCount = Math.max(0, allFolderIds.length - 1);
+  const itemCount = items.filter(item => folderIdSet.has(parseNullableId(item.folderId))).length;
+  return { folder, allFolderIds, folderIdSet, subfolderCount, itemCount };
+}
+async function deleteFolder(folderId) {
+  const folders = load(KEYS.folders);
+  const items = load(KEYS.notes);
+  const summary = getFolderDeleteSummary(folderId, folders, items);
+  if (!summary) return;
+  const removedItems = items.filter(item => summary.folderIdSet.has(parseNullableId(item.folderId)));
+  await Promise.all(removedItems
+    .filter(item => !isNoteItem(item) && item.storageId)
+    .map(item => deleteStoredFile(item.storageId)));
+  save(KEYS.folders, folders.filter(folder => !summary.folderIdSet.has(folder.id)));
+  save(KEYS.notes, items.filter(item => !summary.folderIdSet.has(parseNullableId(item.folderId))));
+  if (currentFolderId !== null && summary.folderIdSet.has(currentFolderId)) {
+    currentFolderId = parseNullableId(summary.folder.parentId);
+  }
+  renderNotes();
+  renderProfile();
+  const folderLabel = summary.allFolderIds.length === 1 ? 'folder' : 'folders';
+  const itemLabel = removedItems.length === 1 ? 'item' : 'items';
+  showToast(`Deleted ${summary.allFolderIds.length} ${folderLabel} and ${removedItems.length} ${itemLabel}`);
+}
+async function confirmDeleteFolder(folderId = currentFolderId) {
+  const summary = getFolderDeleteSummary(folderId);
+  if (!summary) return;
+  const details = [];
+  if (summary.subfolderCount) details.push(`${summary.subfolderCount} subfolder${summary.subfolderCount !== 1 ? 's' : ''}`);
+  if (summary.itemCount) details.push(`${summary.itemCount} item${summary.itemCount !== 1 ? 's' : ''}`);
+  const extra = details.length ? ` This will also delete ${details.join(' and ')} inside it.` : '';
+  if (!confirm(`Delete "${summary.folder.name}"?${extra}`)) return;
+  await deleteFolder(summary.folder.id);
+}
+async function deleteFolderFromModal() {
+  if (!editingFolderId) return;
+  const folderId = editingFolderId;
+  editingFolderId = null;
+  updateFolderModal('add');
+  closeModal('modal-folder');
+  await confirmDeleteFolder(folderId);
 }
 function saveFolder() {
   const name = document.getElementById('inp-folder-name').value.trim();
   const parentId = parseNullableId(document.getElementById('inp-folder-parent').value);
   if (!name) return showToast('Enter a folder name');
   const folders = load(KEYS.folders);
-  if (folders.find(folder => folder.name.toLowerCase() === name.toLowerCase() && parseNullableId(folder.parentId) === parentId)) {
+  const isEditingFolder = editingFolderId !== null;
+  if (folders.find(folder => folder.id !== editingFolderId && folder.name.toLowerCase() === name.toLowerCase() && parseNullableId(folder.parentId) === parentId)) {
     return showToast('Folder already exists here');
   }
-  const icons = ['folder','book','science','code','music_note','brush','calculate'];
-  const clrs = ['#3b82f6','#10b981','#8b5cf6','#ef4444','#d97706','#06b6d4'];
-  folders.push({
-    id: createId(1500),
-    name,
-    parentId,
-    icon: icons[Math.floor(Math.random() * icons.length)],
-    color: clrs[Math.floor(Math.random() * clrs.length)],
-  });
+  if (isEditingFolder) {
+    const folder = folders.find(entry => entry.id === editingFolderId);
+    if (!folder) return;
+    folder.name = name;
+    folder.parentId = parentId;
+  } else {
+    const icons = ['folder','book','science','code','music_note','brush','calculate'];
+    const clrs = ['#3b82f6','#10b981','#8b5cf6','#ef4444','#d97706','#06b6d4'];
+    folders.push({
+      id: createId(1500),
+      name,
+      parentId,
+      icon: icons[Math.floor(Math.random() * icons.length)],
+      color: clrs[Math.floor(Math.random() * clrs.length)],
+    });
+    currentFolderId = parentId;
+  }
   save(KEYS.folders, folders);
-  currentFolderId = parentId;
+  editingFolderId = null;
+  updateFolderModal('add');
   closeModal('modal-folder');
   renderNotes();
-  showToast(parentId === null ? 'Folder created' : 'Subfolder created');
+  showToast(isEditingFolder ? 'Folder updated' : parentId === null ? 'Folder created' : 'Subfolder created');
+}
+function populateItemFolderOptions(selectedFolderId = null) {
+  const folders = load(KEYS.folders);
+  const selectedId = parseNullableId(selectedFolderId);
+  const select = document.getElementById('inp-item-folder');
+  select.innerHTML = '<option value="">No folder</option>' + flattenFolders(null, folders).map(({ folder, depth }) => {
+    const prefix = '&nbsp;'.repeat(depth * 4);
+    return `<option value="${folder.id}" ${folder.id === selectedId ? 'selected' : ''}>${prefix}${escapeHtml(folder.name)}</option>`;
+  }).join('');
+}
+function openLibraryItemManager(itemId) {
+  const items = load(KEYS.notes);
+  const item = items.find(entry => entry.id === itemId);
+  if (!item) return;
+  editingLibraryItemId = item.id;
+  document.getElementById('item-modal-title').textContent = isNoteItem(item) ? 'Rename & Move Note' : 'Rename & Move File';
+  document.getElementById('inp-item-title').value = item.title || '';
+  populateItemFolderOptions(item.folderId);
+  openModal('modal-item');
+}
+function saveLibraryItemChanges() {
+  if (!editingLibraryItemId) return;
+  const title = document.getElementById('inp-item-title').value.trim();
+  const folderId = parseNullableId(document.getElementById('inp-item-folder').value);
+  if (!title) return showToast('Enter a title');
+  const items = load(KEYS.notes);
+  const item = items.find(entry => entry.id === editingLibraryItemId);
+  if (!item) return;
+  item.title = title;
+  item.folderId = folderId;
+  if (!isNoteItem(item) && !item.mimeType && /\.pdf$/i.test(title)) item.mimeType = 'application/pdf';
+  save(KEYS.notes, items);
+  editingLibraryItemId = null;
+  closeModal('modal-item');
+  renderNotes();
+  showToast('Item updated');
 }
 document.getElementById('library-file-input').addEventListener('change', async function(e) {
   const files = Array.from(e.target.files || []);
@@ -1312,6 +1486,208 @@ function timeAgo(dateStr) {
   if (days > 0) return days === 1 ? 'Yesterday' : `${days} days ago`;
   if (hrs > 0) return `${hrs}h ago`;
   return `${mins}m ago`;
+}
+
+// ==================== NOTIFICATIONS ====================
+function hasNotificationSupport() {
+  return typeof Notification !== 'undefined';
+}
+function getNotificationPermissionLabel() {
+  if (!hasNotificationSupport()) return 'Notifications not supported on this device';
+  if (Notification.permission === 'granted') return 'Enabled for this browser';
+  if (Notification.permission === 'denied') return 'Blocked in browser settings';
+  return 'Not enabled';
+}
+function getNotificationDayName(date) {
+  return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][date.getDay()];
+}
+function getUpcomingClassEntries(limit = 4) {
+  const timetable = load(KEYS.timetable);
+  const now = new Date();
+  const entries = [];
+  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+    const date = new Date(now);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(now.getDate() + dayOffset);
+    const dayName = getNotificationDayName(date);
+    (timetable[dayName] || []).forEach(cls => {
+      const eventDate = new Date(date);
+      const [hours, minutes] = String(cls.start || '00:00').split(':').map(Number);
+      eventDate.setHours(hours || 0, minutes || 0, 0, 0);
+      if (eventDate < now) return;
+      entries.push({
+        type: 'class',
+        id: cls.id,
+        className: cls.name,
+        room: cls.room || 'Room TBD',
+        startsAt: eventDate,
+        minutesUntil: Math.round((eventDate - now) / 60000),
+        tag: `class-${cls.id}-${eventDate.toISOString().slice(0, 16)}`,
+      });
+    });
+  }
+  return entries.sort((a, b) => a.startsAt - b.startsAt).slice(0, limit);
+}
+function getUpcomingAssignmentEntries(limit = 4) {
+  const now = new Date();
+  return load(KEYS.assignments)
+    .filter(entry => !entry.done && entry.due)
+    .map(entry => {
+      const dueAt = new Date(entry.due);
+      return {
+        type: 'assignment',
+        id: entry.id,
+        title: entry.title,
+        subject: entry.subject || 'General',
+        dueAt,
+        minutesUntil: Math.round((dueAt - now) / 60000),
+        tag: `assignment-${entry.id}-${dueAt.toISOString().slice(0, 16)}`,
+      };
+    })
+    .sort((a, b) => a.dueAt - b.dueAt)
+    .slice(0, limit);
+}
+function getNotificationPreviewEntries(limit = 6) {
+  return [
+    ...getUpcomingClassEntries(limit),
+    ...getUpcomingAssignmentEntries(limit),
+  ]
+    .sort((a, b) => (a.startsAt || a.dueAt) - (b.startsAt || b.dueAt))
+    .slice(0, limit);
+}
+async function showSystemNotification(title, options = {}) {
+  if (!hasNotificationSupport() || Notification.permission !== 'granted') return false;
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, options);
+    } else {
+      new Notification(title, options);
+    }
+    return true;
+  } catch {
+    try {
+      new Notification(title, options);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+function pruneSentNotifications(sent = {}) {
+  const cutoff = Date.now() - (14 * 24 * 60 * 60 * 1000);
+  return Object.fromEntries(Object.entries(sent).filter(([, timestamp]) => Number(timestamp) >= cutoff));
+}
+function markNotificationSent(key) {
+  const prefs = getNotificationPrefs();
+  const sent = pruneSentNotifications({ ...(prefs.sent || {}), [key]: Date.now() });
+  save(KEYS.notifications, { ...prefs, sent });
+}
+function wasNotificationSent(key) {
+  const prefs = getNotificationPrefs();
+  return Boolean(prefs.sent && prefs.sent[key]);
+}
+function renderNotificationsModal() {
+  const prefs = getNotificationPrefs();
+  const permissionStatus = document.getElementById('notif-permission-status');
+  const enableBtn = document.getElementById('notif-enable-btn');
+  const previewList = document.getElementById('notif-preview-list');
+  const permission = hasNotificationSupport() ? Notification.permission : 'unsupported';
+  permissionStatus.textContent = getNotificationPermissionLabel();
+  enableBtn.textContent = permission === 'granted' ? 'Enabled' : 'Enable';
+  enableBtn.disabled = permission === 'granted' || permission === 'unsupported';
+  enableBtn.style.opacity = permission === 'granted' || permission === 'unsupported' ? '0.7' : '1';
+  document.getElementById('notif-classes-toggle').classList.toggle('active', prefs.classes);
+  document.getElementById('notif-assignments-toggle').classList.toggle('active', prefs.assignments);
+  const entries = getNotificationPreviewEntries();
+  if (!entries.length) {
+    previewList.innerHTML = '<div class="notif-preview-card"><p style="font-weight:600">No upcoming alerts</p><p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.25rem">You are all caught up right now.</p></div>';
+    return;
+  }
+  previewList.innerHTML = entries.map(entry => {
+    if (entry.type === 'class') {
+      return `<div class="notif-preview-card">
+        <p style="font-weight:600">${escapeHtml(entry.className)}</p>
+        <p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.2rem">${entry.room} • starts in ${Math.max(0, entry.minutesUntil)} min</p>
+      </div>`;
+    }
+    const dueLabel = entry.minutesUntil >= 0 ? `due in ${entry.minutesUntil} min` : `${Math.abs(entry.minutesUntil)} min overdue`;
+    return `<div class="notif-preview-card">
+      <p style="font-weight:600">${escapeHtml(entry.title)}</p>
+      <p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.2rem">${escapeHtml(entry.subject)} • ${escapeHtml(dueLabel)}</p>
+    </div>`;
+  }).join('');
+}
+function openNotificationsModal() {
+  renderNotificationsModal();
+  openModal('modal-notifications');
+}
+async function requestNotificationPermission() {
+  if (!hasNotificationSupport()) return showToast('Notifications are not supported here');
+  const permission = await Notification.requestPermission();
+  renderNotificationsModal();
+  if (permission === 'granted') {
+    showToast('Notifications enabled');
+    await showSystemNotification('StudyHub notifications are on', { body: 'You will now get class and deadline reminders.' });
+  } else if (permission === 'denied') {
+    showToast('Notifications blocked by browser');
+  } else {
+    showToast('Notification permission not granted');
+  }
+}
+function toggleNotificationSetting(type) {
+  const prefs = getNotificationPrefs();
+  if (!(type in prefs)) return;
+  save(KEYS.notifications, { ...prefs, [type]: !prefs[type], sent: pruneSentNotifications(prefs.sent || {}) });
+  renderNotificationsModal();
+  showToast(`${type === 'classes' ? 'Class' : 'Assignment'} reminders ${prefs[type] ? 'off' : 'on'}`);
+}
+async function sendTestNotification() {
+  if (!hasNotificationSupport()) return showToast('Notifications are not supported here');
+  if (Notification.permission !== 'granted') return requestNotificationPermission();
+  const sent = await showSystemNotification('StudyHub test notification', {
+    body: 'Your reminders are working.',
+    tag: 'studyhub-test',
+  });
+  if (sent) showToast('Test notification sent');
+}
+async function checkScheduledNotifications() {
+  if (!hasNotificationSupport() || Notification.permission !== 'granted') return;
+  const prefs = getNotificationPrefs();
+  const classEntries = prefs.classes ? getUpcomingClassEntries(8).filter(entry => entry.minutesUntil >= 0 && entry.minutesUntil <= 15) : [];
+  for (const entry of classEntries) {
+    const key = `${entry.tag}-reminder`;
+    if (wasNotificationSent(key)) continue;
+    const sent = await showSystemNotification(`${entry.className} starts soon`, {
+      body: `${entry.room} • starts in ${entry.minutesUntil} min`,
+      tag: key,
+    });
+    if (sent) markNotificationSent(key);
+  }
+  const assignmentEntries = prefs.assignments ? getUpcomingAssignmentEntries(12) : [];
+  for (const entry of assignmentEntries) {
+    const soonKey = `${entry.tag}-soon`;
+    const overdueKey = `${entry.tag}-overdue`;
+    if (entry.minutesUntil >= 0 && entry.minutesUntil <= 60 && !wasNotificationSent(soonKey)) {
+      const sent = await showSystemNotification(`${entry.title} is due soon`, {
+        body: `${entry.subject} • due in ${entry.minutesUntil} min`,
+        tag: soonKey,
+      });
+      if (sent) markNotificationSent(soonKey);
+    }
+    if (entry.minutesUntil < 0 && !wasNotificationSent(overdueKey)) {
+      const sent = await showSystemNotification(`${entry.title} is overdue`, {
+        body: `${entry.subject} • ${Math.abs(entry.minutesUntil)} min late`,
+        tag: overdueKey,
+      });
+      if (sent) markNotificationSent(overdueKey);
+    }
+  }
+}
+function startNotificationChecks() {
+  if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+  notificationCheckInterval = setInterval(() => { checkScheduledNotifications(); }, 60000);
+  checkScheduledNotifications();
 }
 
 // ==================== PROFILE & THEME ====================
@@ -1421,6 +1797,7 @@ normalizeLibraryData();
 updateScreenMode(startTab === 'timetable' ? 'timetable' : 'dashboard');
 updateTimetableStatusTime();
 setInterval(updateTimetableStatusTime, 30000);
+startNotificationChecks();
 if (startTab && ['dashboard','assignments','timetable','notes','profile'].includes(startTab)) {
   const idx = ['dashboard','assignments','timetable','notes','profile'].indexOf(startTab);
   switchTab(startTab, document.querySelectorAll('.nav-item')[idx]);
