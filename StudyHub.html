@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <title>StudyHub App</title>
+
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="./manifest.json"/>
+  <meta name="theme-color" content="#3525cd"/>
+  <meta name="description" content="Track assignments, timetable, and notes all in one place"/>
+
+  <!-- iOS PWA Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="StudyHub"/>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%233525cd' rx='36'/%3E%3Ctext x='50%25' y='54%25' font-size='100' text-anchor='middle' dominant-baseline='central' fill='white' font-family='system-ui'%3E📚%3C/text%3E%3C/svg%3E"/>
+
+  <!-- Android PWA splash/status bar -->
+  <meta name="mobile-web-app-capable" content="yes"/>
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container": "#e9edff",
+            "inverse-on-surface": "#edf0ff",
+            "surface-bright": "#f9f9ff",
+            "tertiary-container": "#a44100",
+            "surface-container-low": "#f1f3ff",
+            "surface-tint": "#4d44e3",
+            "primary-container": "#4f46e5",
+            "on-error-container": "#93000a",
+            "on-secondary-container": "#54647a",
+            "on-secondary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#e1e8fd",
+            "tertiary-fixed": "#ffdbcc",
+            "error-container": "#ffdad6",
+            "on-error": "#ffffff",
+            "primary": "#3525cd",
+            "secondary-fixed": "#d3e4fe",
+            "on-primary-fixed-variant": "#3323cc",
+            "on-tertiary-fixed": "#351000",
+            "surface": "#f9f9ff",
+            "surface-container-highest": "#dce2f7",
+            "error": "#ba1a1a",
+            "secondary-container": "#d0e1fb",
+            "on-primary-fixed": "#0f0069",
+            "surface-dim": "#d3daef",
+            "outline-variant": "#c7c4d8",
+            "inverse-primary": "#c3c0ff",
+            "outline": "#777587",
+            "tertiary-fixed-dim": "#ffb695",
+            "secondary": "#505f76",
+            "on-surface": "#141b2b",
+            "tertiary": "#7e3000",
+            "on-tertiary-fixed-variant": "#7b2f00",
+            "primary-fixed-dim": "#c3c0ff",
+            "secondary-fixed-dim": "#b7c8e1",
+            "primary-fixed": "#e2dfff",
+            "surface-variant": "#dce2f7",
+            "on-background": "#141b2b",
+            "on-surface-variant": "#464555",
+            "on-secondary-fixed-variant": "#38485d",
+            "on-primary": "#ffffff",
+            "on-tertiary": "#ffffff",
+            "inverse-surface": "#293040",
+            "on-tertiary-container": "#ffd2be",
+            "on-secondary-fixed": "#0b1c30",
+            "background": "#f9f9ff",
+            "on-primary-container": "#dad7ff"
+          },
+          fontFamily: {
+            "headline": ["Inter", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Inter", "sans-serif"]
+          },
+          borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+        },
+      },
+    }
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    }
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    }
+    body { font-family: 'Inter', sans-serif; background-color: #f9f9ff; color: #141b2b; }
+    .glass-nav { background: rgba(249, 249, 255, 0.8); backdrop-filter: blur(12px); }
+    body { min-height: max(884px, 100dvh); }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .view-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+    .view-section.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .task-item { transition: all 0.2s ease; cursor: pointer; }
+    .task-item.completed { opacity: 0.5; }
+    .task-item.completed .checkbox-box { background-color: #3525cd; border-color: #3525cd; }
+    .task-item.completed .checkbox-icon { display: block; }
+    .task-icon-hidden { display: none; }
+  </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased pb-32">
+
+  <!-- Unified TopAppBar -->
+  <header class="fixed top-0 w-full z-50 bg-slate-50/80 backdrop-blur-xl flex justify-between items-center px-6 h-16 w-full shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="h-8 w-8 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant/10">
+        <img alt="Profile" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7WdW14jGcCu3y5v_t11VevowASdRxNJq6lLT3Gy8QtwLVIiKDe9gXEl8WNdG3Mump67Xxb9wtZ4eibvZ_m1chaAdabOEw9Ke1kdgA2dqi_8bJbR-uinBEW1I-UB79ZnZgD9Excw5S593OXBsbVCawZ3ztz5ogujYEnhvcNfQaj_NtTdjzxINSa0o274SDBhzRcauK2-H5D3sA1YINq4aJHrAdk76Pqrs-EYNkfifLSnx_uuJeQJZW9FrBIBWvdViAyuzQ1ScKHA"/>
+      </div>
+      <span class="text-xl font-bold tracking-tighter text-indigo-700">StudyHub</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="p-2 text-slate-500 hover:bg-slate-200/50 transition-colors rounded-full active:scale-95 duration-150 flex items-center justify-center">
+        <span class="material-symbols-outlined">search</span>
+      </button>
+      <button class="p-2 text-slate-500 hover:bg-slate-200/50 transition-colors rounded-full active:scale-95 duration-150 flex items-center justify-center" id="header-more-btn" style="display: none;">
+        <span class="material-symbols-outlined">more_vert</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= DASHBOARD VIEW ================= -->
+  <main id="view-dashboard" class="view-section active pt-24 px-6 max-w-4xl mx-auto space-y-12">
+    <!-- Welcome Header -->
+    <section>
+      <p class="text-slate-500 font-medium tracking-wide text-xs mb-2 uppercase" id="current-date">Today</p>
+      <h1 class="text-[3.5rem] font-bold leading-none tracking-tight text-on-surface">Hello, Alex.</h1>
+      <p class="mt-4 text-secondary text-lg">You have 4 classes today and 3 urgent deadlines.</p>
+    </section>
+
+    <!-- Today's Schedule - Currently Running -->
+    <section>
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold tracking-tight text-on-surface">Today's Schedule</h2>
+        <span class="px-3 py-1 bg-primary-fixed text-on-primary-fixed-variant text-[10px] font-bold uppercase tracking-widest rounded-full">Live Now</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Active Class Card -->
+        <div class="md:col-span-2 p-8 rounded-xl bg-primary text-on-primary shadow-2xl shadow-primary/20 relative overflow-hidden flex flex-col justify-between min-h-[240px]">
+          <div class="relative z-10">
+            <div class="flex items-center gap-2 mb-4">
+              <span class="material-symbols-outlined filled text-sm">sensors</span>
+              <span class="text-xs font-medium uppercase tracking-widest opacity-80">Room 402 • Engineering Block</span>
+            </div>
+            <h3 class="text-3xl font-bold leading-tight">Advanced Thermodynamics</h3>
+            <p class="mt-2 text-primary-fixed opacity-90">Prof. Harrison • 10:00 AM - 11:30 AM</p>
+          </div>
+          <div class="relative z-10 mt-8 flex items-end justify-between">
+            <div>
+              <div class="text-[10px] uppercase tracking-widest opacity-70 mb-2">Progress</div>
+              <div class="w-48 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                <div class="w-[65%] h-full bg-white rounded-full"></div>
+              </div>
+            </div>
+            <button class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              Join Stream
+            </button>
+          </div>
+          <!-- Decorative background glow -->
+          <div class="absolute -right-12 -top-12 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+        </div>
+
+        <!-- Next Up -->
+        <div class="bg-surface-container-low p-6 rounded-xl flex flex-col justify-between border-none">
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Next Class</span>
+            <h4 class="mt-3 text-lg font-semibold text-on-surface leading-snug">Calculus III</h4>
+            <p class="text-sm text-secondary mt-1">1:00 PM - 2:30 PM</p>
+          </div>
+          <div class="mt-4 pt-4 border-t border-outline-variant/15">
+            <div class="flex items-center gap-3 text-slate-500">
+              <span class="material-symbols-outlined text-base">location_on</span>
+              <span class="text-xs font-medium">Digital Library</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Urgent Assignments -->
+    <section>
+      <h2 class="text-xl font-semibold tracking-tight text-on-surface mb-6">Urgent Assignments</h2>
+      <div class="space-y-4">
+        <!-- Assignment 1 -->
+        <div class="group bg-surface-container-lowest p-5 rounded-xl flex items-center justify-between transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/40 cursor-pointer">
+          <div class="flex items-center gap-5">
+            <div class="w-12 h-12 rounded-full bg-error-container/20 flex items-center justify-center text-error group-hover:scale-110 transition-transform">
+              <span class="material-symbols-outlined filled">priority_high</span>
+            </div>
+            <div>
+              <h4 class="font-semibold text-on-surface">Physics Lab Report</h4>
+              <p class="text-xs text-secondary mt-0.5">Due in 4 hours • Fluid Dynamics</p>
+            </div>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter bg-error-container text-on-error-container">High Priority</span>
+            <span class="text-xs font-medium text-slate-400">Week 7</span>
+          </div>
+        </div>
+        <!-- Assignment 2 -->
+        <div class="group bg-surface-container-lowest p-5 rounded-xl flex items-center justify-between transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/40 cursor-pointer">
+          <div class="flex items-center gap-5">
+            <div class="w-12 h-12 rounded-full bg-tertiary-container/10 flex items-center justify-center text-tertiary group-hover:scale-110 transition-transform">
+              <span class="material-symbols-outlined">schedule</span>
+            </div>
+            <div>
+              <h4 class="font-semibold text-on-surface">History of Architecture</h4>
+              <p class="text-xs text-secondary mt-0.5">Due Tomorrow, 9:00 AM</p>
+            </div>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter bg-surface-container-high text-slate-600">Medium</span>
+            <span class="text-xs font-medium text-slate-400">Research Paper</span>
+          </div>
+        </div>
+        <!-- Assignment 3 -->
+        <div class="group bg-surface-container-lowest p-5 rounded-xl flex items-center justify-between transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/40 cursor-pointer">
+          <div class="flex items-center gap-5">
+            <div class="w-12 h-12 rounded-full bg-primary-fixed/30 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+              <span class="material-symbols-outlined">description</span>
+            </div>
+            <div>
+              <h4 class="font-semibold text-on-surface">Python Scripting Final</h4>
+              <p class="text-xs text-secondary mt-0.5">Due in 2 days</p>
+            </div>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter bg-surface-container-high text-slate-600">Low</span>
+            <span class="text-xs font-medium text-slate-400">Coding</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Deep Work / Tasks Summary -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="p-8 rounded-xl bg-surface-container-high relative overflow-hidden flex flex-col justify-center">
+        <h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6 text-center">Deep Work Timer</h3>
+        <div class="flex items-center justify-center py-4">
+          <div id="deep-work-timer" class="text-[4rem] font-bold text-primary tracking-tighter leading-none font-mono">25:00</div>
+        </div>
+        <div class="mt-8 flex justify-center">
+          <button id="toggle-timer-btn" class="bg-primary text-on-primary px-8 py-3 rounded-xl font-semibold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95 w-full max-w-[200px]">
+            Start Focus Session
+          </button>
+        </div>
+      </div>
+      <div class="p-8 rounded-xl bg-surface-container-low border-none">
+        <h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">Tasks Remaining</h3>
+        <ul class="space-y-4" id="task-list">
+          <li class="flex items-center gap-3 task-item" onclick="toggleTask(this)">
+            <div class="w-5 h-5 rounded border-2 border-outline-variant/30 flex items-center justify-center checkbox-box">
+              <span class="material-symbols-outlined text-[14px] text-white checkbox-icon task-icon-hidden" style="font-variation-settings: 'wght' 700;">check</span>
+            </div>
+            <span class="text-sm text-on-surface font-medium task-text">Review Bio-Chemistry Notes</span>
+          </li>
+          <li class="flex items-center gap-3 task-item completed" onclick="toggleTask(this)">
+            <div class="w-5 h-5 rounded border-2 border-outline-variant/30 flex items-center justify-center checkbox-box">
+              <span class="material-symbols-outlined text-[14px] text-white checkbox-icon" style="font-variation-settings: 'wght' 700;">check</span>
+            </div>
+            <span class="text-sm text-on-surface font-medium line-through task-text">Return Library Books</span>
+          </li>
+          <li class="flex items-center gap-3 task-item" onclick="toggleTask(this)">
+            <div class="w-5 h-5 rounded border-2 border-outline-variant/30 flex items-center justify-center checkbox-box">
+              <span class="material-symbols-outlined text-[14px] text-white checkbox-icon task-icon-hidden" style="font-variation-settings: 'wght' 700;">check</span>
+            </div>
+            <span class="text-sm text-on-surface font-medium task-text">Email Professor about Extension</span>
+          </li>
+          <li class="flex items-center gap-3 task-item" onclick="toggleTask(this)">
+            <div class="w-5 h-5 rounded border-2 border-outline-variant/30 flex items-center justify-center checkbox-box">
+              <span class="material-symbols-outlined text-[14px] text-white checkbox-icon task-icon-hidden" style="font-variation-settings: 'wght' 700;">check</span>
+            </div>
+            <span class="text-sm text-on-surface font-medium task-text">Buy Drafting Compasses</span>
+          </li>
+        </ul>
+        <button class="mt-8 text-primary font-semibold text-xs flex items-center gap-1 hover:gap-2 transition-all">
+          View All Tasks <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= ASSIGNMENTS VIEW ================= -->
+  <main id="view-assignments" class="view-section pt-24 px-6 max-w-2xl mx-auto">
+    <!-- Editorial Header -->
+    <section class="mb-8">
+      <h1 class="text-[1.75rem] font-semibold text-on-surface tracking-tight mb-2">Assignments</h1>
+      <p class="text-on-surface-variant text-sm">You have 4 deadlines remaining this week.</p>
+    </section>
+    
+    <!-- Filter Toggle -->
+    <div class="flex p-1 bg-surface-container-low rounded-xl mb-8 w-fit relative overflow-hidden">
+      <div id="filter-indicator" class="absolute bg-surface-container-lowest shadow-sm rounded-lg top-1 left-1 bottom-1 w-[48%] transition-transform duration-300 pointer-events-none"></div>
+      <button class="px-6 py-2 text-sm font-semibold rounded-lg text-primary transition-all relative z-10 w-28" id="filter-pending" onclick="setAssignmentFilter('pending')">Pending</button>
+      <button class="px-6 py-2 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-all relative z-10 w-28" id="filter-completed" onclick="setAssignmentFilter('completed')">Completed</button>
+    </div>
+
+    <!-- Assignment List -->
+    <div class="space-y-4" id="assignments-list">
+      <!-- Overdue Card -->
+      <div class="bg-surface-container-lowest p-5 rounded-xl border-l-4 border-error shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-[0.98]">
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-[0.75rem] font-medium uppercase tracking-widest text-error">Overdue</span>
+          <span class="px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container text-[10px] font-bold uppercase tracking-wider">High</span>
+        </div>
+        <h3 class="text-base font-semibold text-on-surface mb-1 group-hover:text-primary transition-colors">Macroeconomics Thesis Proposal</h3>
+        <p class="text-sm text-on-surface-variant mb-4">Department of Economics • Nov 12</p>
+        <div class="flex items-center gap-2 text-error">
+          <span class="material-symbols-outlined text-[18px]">warning</span>
+          <span class="text-xs font-semibold">2 days late</span>
+        </div>
+      </div>
+      <!-- Due Today Card -->
+      <div class="bg-surface-container-lowest p-5 rounded-xl border-l-4 border-primary shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-[0.98]">
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-[0.75rem] font-medium uppercase tracking-widest text-primary">Due Today</span>
+          <span class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-fixed-variant text-[10px] font-bold uppercase tracking-wider">Medium</span>
+        </div>
+        <h3 class="text-base font-semibold text-on-surface mb-1 group-hover:text-primary transition-colors">Advanced Calculus Problem Set 4</h3>
+        <p class="text-sm text-on-surface-variant mb-4">Mathematics Department • 11:59 PM</p>
+        <div class="flex items-center gap-2 text-primary">
+          <span class="material-symbols-outlined text-[18px]">schedule</span>
+          <span class="text-xs font-semibold">Due in 8 hours</span>
+        </div>
+      </div>
+      <!-- Normal Priority Card -->
+      <div class="bg-surface-container-lowest p-5 rounded-xl border-l-4 border-outline-variant/30 shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-[0.98]">
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-[0.75rem] font-medium uppercase tracking-widest text-on-surface-variant">Nov 18, 2023</span>
+          <span class="px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Low</span>
+        </div>
+        <h3 class="text-base font-semibold text-on-surface mb-1 group-hover:text-primary transition-colors">Modern World History Essay</h3>
+        <p class="text-sm text-on-surface-variant mb-4">Humanities Faculty • 4 days left</p>
+        <div class="flex items-center gap-2 text-on-surface-variant">
+          <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+          <span class="text-xs font-medium">Coming up</span>
+        </div>
+      </div>
+      <!-- Specific Card 4 -->
+      <div class="bg-surface-container-lowest p-5 rounded-xl border-l-4 border-secondary/50 shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-[0.98]">
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-[0.75rem] font-medium uppercase tracking-widest text-on-surface-variant">Nov 21, 2023</span>
+          <span class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-fixed-variant text-[10px] font-bold uppercase tracking-wider">Medium</span>
+        </div>
+        <h3 class="text-base font-semibold text-on-surface mb-1 group-hover:text-primary transition-colors">Introduction to Psychology Quiz</h3>
+        <p class="text-sm text-on-surface-variant mb-4">Social Sciences • 7 days left</p>
+        <div class="flex items-center gap-2 text-on-surface-variant">
+          <span class="material-symbols-outlined text-[18px]">quiz</span>
+          <span class="text-xs font-medium">Study module available</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Empty State for Completed (Hidden by default) -->
+    <div id="assignments-completed" class="hidden text-center py-12">
+      <div class="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mx-auto mb-4">
+        <span class="material-symbols-outlined text-4xl text-primary">done_all</span>
+      </div>
+      <h3 class="text-lg font-semibold text-on-surface">You're all caught up!</h3>
+      <p class="text-sm text-on-surface-variant mt-2 max-w-[250px] mx-auto">You have completed all assignments from the past two weeks.</p>
+    </div>
+
+    <!-- FAB -->
+    <button onclick="alert('Add assignment feature coming soon!')" class="fixed bottom-24 right-6 w-14 h-14 bg-primary text-on-primary rounded-xl shadow-[0_8px_30px_rgba(53,37,205,0.4)] flex items-center justify-center hover:-translate-y-1 active:scale-95 transition-all z-40">
+      <span class="material-symbols-outlined font-bold text-2xl">add</span>
+    </button>
+  </main>
+
+  <!-- ================= TIMETABLE VIEW ================= -->
+  <main id="view-timetable" class="view-section pt-24 px-6 max-w-4xl mx-auto">
+    <section class="mb-10">
+      <p class="text-indigo-600 font-semibold tracking-widest text-[10px] uppercase mb-2">Academic Schedule</p>
+      <h2 class="text-3xl font-bold text-on-surface tracking-tight mb-4">Weekly Timetable</h2>
+      <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+        <button class="day-btn px-5 py-2 rounded-full bg-primary text-on-primary text-sm font-semibold whitespace-nowrap active:scale-95 transition-transform" onclick="setDay('Monday')">Monday</button>
+        <button class="day-btn px-5 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium whitespace-nowrap hover:bg-surface-container-highest transition-all active:scale-95" onclick="setDay('Tuesday')">Tuesday</button>
+        <button class="day-btn px-5 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium whitespace-nowrap hover:bg-surface-container-highest transition-all active:scale-95" onclick="setDay('Wednesday')">Wednesday</button>
+        <button class="day-btn px-5 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium whitespace-nowrap hover:bg-surface-container-highest transition-all active:scale-95" onclick="setDay('Thursday')">Thursday</button>
+        <button class="day-btn px-5 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium whitespace-nowrap hover:bg-surface-container-highest transition-all active:scale-95" onclick="setDay('Friday')">Friday</button>
+      </div>
+    </section>
+    
+    <section class="space-y-4">
+      <div class="relative pl-8">
+        <div class="absolute left-0 top-0 bottom-0 w-px bg-outline-variant opacity-30 ml-3"></div>
+        <div class="space-y-6">
+          <div class="relative group">
+            <div class="absolute -left-[29px] top-4 w-2 h-2 rounded-full bg-outline-variant border-2 border-surface"></div>
+            <div class="flex items-start gap-4 p-5 rounded-xl bg-surface-container-low transition-all hover:bg-surface-container cursor-pointer">
+              <div class="w-20 pt-1 shrink-0">
+                <span class="block text-xs font-bold text-slate-400">08:30</span>
+                <span class="block text-xs text-slate-400">09:45</span>
+              </div>
+              <div>
+                <h3 class="text-base font-semibold text-on-surface">Advanced Mathematics</h3>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="material-symbols-outlined text-sm text-slate-400">room</span>
+                  <span class="text-xs text-slate-500 font-medium">Lecture Hall A2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="relative group">
+            <div class="absolute -left-[31px] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary ring-4 ring-indigo-50"></div>
+            <div class="flex items-start gap-4 p-5 rounded-xl bg-surface-container-lowest shadow-[0_4px_24px_rgba(20,27,43,0.06)] border border-indigo-100 ring-2 ring-primary/10 cursor-pointer">
+              <div class="w-20 pt-1 shrink-0">
+                <span class="block text-xs font-bold text-primary">10:00</span>
+                <span class="block text-xs text-primary/60">11:15</span>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-base font-bold text-on-surface">Data Structures &amp; Algorithms</h3>
+                  <span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed text-[10px] font-bold uppercase tracking-tighter">Current</span>
+                </div>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="material-symbols-outlined text-sm text-primary">room</span>
+                  <span class="text-xs text-indigo-700 font-semibold">Lab Room 402</span>
+                </div>
+                <div class="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-primary rounded-full transition-all duration-1000" style="width: 65%;"></div>
+                </div>
+                <p class="mt-2 text-[10px] text-slate-400 font-medium uppercase tracking-widest">45 minutes remaining</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="relative group">
+            <div class="absolute -left-[29px] top-4 w-2 h-2 rounded-full bg-outline-variant border-2 border-surface"></div>
+            <div class="flex items-start gap-4 p-5 rounded-xl bg-surface-container-low transition-all hover:bg-surface-container cursor-pointer">
+              <div class="w-20 pt-1 shrink-0">
+                <span class="block text-xs font-bold text-slate-400">11:30</span>
+                <span class="block text-xs text-slate-400">12:45</span>
+              </div>
+              <div>
+                <h3 class="text-base font-semibold text-on-surface">Software Engineering</h3>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="material-symbols-outlined text-sm text-slate-400">room</span>
+                  <span class="text-xs text-slate-500 font-medium">Seminar Room 12</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="relative group">
+            <div class="absolute -left-[29px] top-4 w-2 h-2 rounded-full bg-outline-variant border-2 border-surface"></div>
+            <div class="flex items-start gap-4 p-5 rounded-xl bg-surface-container-low transition-all hover:bg-surface-container cursor-pointer">
+              <div class="w-20 pt-1 shrink-0">
+                <span class="block text-xs font-bold text-slate-400">14:00</span>
+                <span class="block text-xs text-slate-400">15:30</span>
+              </div>
+              <div>
+                <h3 class="text-base font-semibold text-on-surface">Technical Writing</h3>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="material-symbols-outlined text-sm text-slate-400">room</span>
+                  <span class="text-xs text-slate-500 font-medium">Main Library</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section class="mt-12 bg-indigo-50/50 p-6 rounded-2xl mb-8">
+      <h4 class="text-sm font-bold text-indigo-700 mb-4">Quick Insights</h4>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm">
+          <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Classes</span>
+          <span class="text-2xl font-bold text-on-surface">18 <span class="text-sm font-medium text-slate-400">/ week</span></span>
+        </div>
+        <div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm">
+          <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Study Hours</span>
+          <span class="text-2xl font-bold text-on-surface">24.5 <span class="text-sm font-medium text-slate-400">h</span></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= NOTES VIEW ================= -->
+  <main id="view-notes" class="view-section pt-24 px-6 max-w-5xl mx-auto">
+    <!-- Hero Section -->
+    <section class="mb-12">
+      <h1 class="text-4xl font-bold tracking-tight text-on-surface mb-2">Notes Vault</h1>
+      <p class="text-on-surface-variant max-w-md">Access your organized academic sanctuary. Capture, store, and revisit your learning journey.</p>
+    </section>
+    
+    <!-- Quick Actions Bento -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+      <div class="md:col-span-2 bg-surface-container-low rounded-2xl p-6 flex flex-col justify-between h-48 relative overflow-hidden group shadow-sm border border-outline-variant/5">
+        <div class="z-10">
+          <h3 class="text-xl font-semibold mb-1">Capture New Notes</h3>
+          <p class="text-sm text-on-surface-variant mb-4">Digitize your handwriting instantly.</p>
+          <div class="flex gap-2">
+            <button class="bg-gradient-to-r from-primary to-primary-container text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 hover:shadow-lg transition-all active:scale-95">
+              <span class="material-symbols-outlined filled text-lg">photo_camera</span>
+              Take Photo
+            </button>
+            <button class="bg-surface-container-lowest text-primary border border-outline-variant/15 px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 hover:bg-white transition-all active:scale-95 shadow-sm">
+              <span class="material-symbols-outlined text-lg">image</span>
+              Gallery
+            </button>
+          </div>
+        </div>
+        <div class="absolute right-[-10%] bottom-[-20%] opacity-[0.03] group-hover:opacity-10 group-hover:scale-110 transition-all duration-500 pointer-events-none">
+          <span class="material-symbols-outlined filled text-[160px]">description</span>
+        </div>
+      </div>
+      
+      <div class="bg-primary text-on-primary rounded-2xl p-6 flex flex-col justify-between h-48 hover:shadow-xl transition-all cursor-pointer active:scale-[0.98] shadow-md border border-primary/20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4VjH...')] bg-cover bg-center">
+        <div>
+          <h3 class="text-xl font-semibold mb-1">New Text Note</h3>
+          <p class="text-sm text-on-primary-container/80">Draft your thoughts and concepts.</p>
+        </div>
+        <div class="flex justify-end">
+          <div class="bg-white/20 p-3 rounded-full backdrop-blur-sm group-hover:bg-white/30 transition-colors">
+            <span class="material-symbols-outlined text-3xl">add</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Subject Folders -->
+    <section class="mb-12">
+      <div class="flex justify-between items-end mb-6">
+        <h2 class="text-2xl font-semibold tracking-tight">Subject Folders</h2>
+        <button class="text-sm font-semibold text-primary hover:underline">View All</button>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Folder: Math -->
+        <div class="bg-surface-container-lowest border border-outline-variant/15 p-5 rounded-2xl hover:bg-surface-container-low transition-all cursor-pointer group hover:shadow-md active:scale-[0.98]">
+          <div class="w-12 h-12 bg-blue-50/80 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined filled text-blue-600">functions</span>
+          </div>
+          <h4 class="font-semibold text-lg">Math</h4>
+          <p class="text-xs text-on-surface-variant">24 Items</p>
+        </div>
+        <!-- Folder: History -->
+        <div class="bg-surface-container-lowest border border-outline-variant/15 p-5 rounded-2xl hover:bg-surface-container-low transition-all cursor-pointer group hover:shadow-md active:scale-[0.98]">
+          <div class="w-12 h-12 bg-amber-50/80 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined filled text-amber-600">history_edu</span>
+          </div>
+          <h4 class="font-semibold text-lg">History</h4>
+          <p class="text-xs text-on-surface-variant">18 Items</p>
+        </div>
+        <!-- Folder: Physics -->
+        <div class="bg-surface-container-lowest border border-outline-variant/15 p-5 rounded-2xl hover:bg-surface-container-low transition-all cursor-pointer group hover:shadow-md active:scale-[0.98]">
+          <div class="w-12 h-12 bg-indigo-50/80 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined filled text-indigo-600">science</span>
+          </div>
+          <h4 class="font-semibold text-lg">Physics</h4>
+          <p class="text-xs text-on-surface-variant">12 Items</p>
+        </div>
+        <!-- Add New Folder -->
+        <div class="bg-surface-container-low border-2 border-dashed border-outline-variant/30 p-5 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all active:scale-[0.98]">
+          <span class="material-symbols-outlined text-slate-400 mb-2">create_new_folder</span>
+          <span class="text-sm font-medium text-slate-500">New Folder</span>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Recent Notes -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-semibold tracking-tight mb-6">Recent Notes</h2>
+      <div class="space-y-3">
+        <!-- Note Item 1 -->
+        <div class="flex items-center p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/15 hover:shadow-md hover:border-primary/30 transition-all group cursor-pointer active:scale-[0.99]">
+          <div class="w-14 h-14 rounded-lg bg-surface-container-high overflow-hidden mr-4 shadow-sm border border-outline-variant/10">
+            <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAmK8Y04PwRgl75LaU6ZNkxchjQCxMZWFvJUmoJnYkg53ExB--kJStC47EzAevSum3trvSMgUv2P8gkT9UrqoZ5hAYAC9a-hVnyk3fbESzsZZCrRdih8gad_OH4HG7eBO11zL-KNC1B5mG3NwY3wHbSQWLW89MvWklLwa81YIQj-yQEcb75EGA051ZjD_EgOrOEryCGZEeOEzlM_-eUhFUJU8w1LCjtOfFgPoBherQ39VotYUxZ7Xb3HEIBNMfcKntKJrvUTuwzQ"/>
+          </div>
+          <div class="flex-1">
+            <h4 class="font-semibold text-on-surface">Calculus III: Vector Fields</h4>
+            <p class="text-xs text-on-surface-variant mt-0.5">Modified 2 hours ago • Math</p>
+          </div>
+          <span class="material-symbols-outlined text-slate-300 transform translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">chevron_right</span>
+        </div>
+        <!-- Note Item 2 -->
+        <div class="flex items-center p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/15 hover:shadow-md hover:border-primary/30 transition-all group cursor-pointer active:scale-[0.99]">
+          <div class="w-14 h-14 rounded-lg bg-surface-container-high overflow-hidden mr-4 shadow-sm border border-outline-variant/10">
+            <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfFhTqJtISFBDgkZKhfIcA9E7b9F7cAZqWXbJJ80Rn_6_y5HagFIeTPbdZPxovMqoxCwwaYjzJvcn3eD-hUv4Y4LOqtsQezXVPQ9kPckqG_qIcSUXxgQ-RT5uk04SA97nralliIt5W3WOUTYLthIJe8Xaf3SKbdi0Ks_wPU2Ct8Ilom7hPyQKQN3kxTupER6X219ZHeoPL8n3FYUkIocjZ19YKjiDLavNRIIbHFRWoOWq6FiHGut11XO-sG5E6cfMnO1pTKowzpQ"/>
+          </div>
+          <div class="flex-1">
+            <h4 class="font-semibold text-on-surface">Industrial Revolution Summary</h4>
+            <p class="text-xs text-on-surface-variant mt-0.5">Modified Yesterday • History</p>
+          </div>
+          <span class="material-symbols-outlined text-slate-300 transform translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">chevron_right</span>
+        </div>
+        <!-- Note Item 3 -->
+        <div class="flex items-center p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/15 hover:shadow-md hover:border-primary/30 transition-all group cursor-pointer active:scale-[0.99]">
+          <div class="w-14 h-14 rounded-lg bg-indigo-50/80 flex items-center justify-center mr-4 shadow-sm border border-outline-variant/10">
+            <span class="material-symbols-outlined text-indigo-400 group-hover:scale-110 transition-transform">text_snippet</span>
+          </div>
+          <div class="flex-1">
+            <h4 class="font-semibold text-on-surface">Thermodynamics Laws Pt 1</h4>
+            <p class="text-xs text-on-surface-variant mt-0.5">Modified 3 days ago • Physics</p>
+          </div>
+          <span class="material-symbols-outlined text-slate-300 transform translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">chevron_right</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= BOTTOM NAVIGATION ================= -->
+  <nav class="fixed bottom-0 left-0 w-full flex justify-around items-center h-20 px-4 bg-slate-50/80 backdrop-blur-xl z-50 border-t border-slate-200/10 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
+    <!-- Dashboard Tab -->
+    <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center justify-center text-indigo-600 bg-indigo-50/50 rounded-xl px-4 py-1.5 transition-all active:scale-90 duration-200">
+      <span class="material-symbols-outlined filled mb-1">dashboard</span>
+      <span class="font-sans text-[10px] font-bold uppercase tracking-widest nav-text">Dashboard</span>
+    </a>
+    <!-- Assignments Tab -->
+    <a href="#" onclick="switchTab('assignments')" id="nav-assignments" class="nav-btn flex flex-col items-center justify-center text-slate-400 px-4 py-1.5 hover:text-indigo-500 hover:bg-slate-100/50 rounded-xl transition-all active:scale-90 duration-200">
+      <span class="material-symbols-outlined mb-1">assignment</span>
+      <span class="font-sans text-[10px] font-medium uppercase tracking-widest nav-text">Task</span>
+    </a>
+    <!-- Timetable Tab -->
+    <a href="#" onclick="switchTab('timetable')" id="nav-timetable" class="nav-btn flex flex-col items-center justify-center text-slate-400 px-4 py-1.5 hover:text-indigo-500 hover:bg-slate-100/50 rounded-xl transition-all active:scale-90 duration-200">
+      <span class="material-symbols-outlined mb-1">schedule</span>
+      <span class="font-sans text-[10px] font-medium uppercase tracking-widest nav-text">Time</span>
+    </a>
+    <!-- Notes Tab -->
+    <a href="#" onclick="switchTab('notes')" id="nav-notes" class="nav-btn flex flex-col items-center justify-center text-slate-400 px-4 py-1.5 hover:text-indigo-500 hover:bg-slate-100/50 rounded-xl transition-all active:scale-90 duration-200">
+      <span class="material-symbols-outlined mb-1">description</span>
+      <span class="font-sans text-[10px] font-medium uppercase tracking-widest nav-text">Notes</span>
+    </a>
+  </nav>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    // Set Current Date dynamically
+    const options = { weekday: 'long', month: 'short', day: 'numeric' };
+    document.getElementById('current-date').innerText = new Date().toLocaleDateString('en-US', options).toUpperCase();
+
+    // Handle view switching
+    function switchTab(tabId) {
+      // Hide all views
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      // Remove active states from all nav buttons
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('text-indigo-600', 'bg-indigo-50/50');
+        btn.classList.add('text-slate-400');
+        // Unfill the icons
+        btn.querySelector('.material-symbols-outlined').classList.remove('filled');
+        // Unbold the text
+        btn.querySelector('.nav-text').classList.remove('font-bold');
+        btn.querySelector('.nav-text').classList.add('font-medium');
+      });
+
+      // Show selected view
+      document.getElementById('view-' + tabId).classList.add('active');
+      
+      // Highlight selected nav button
+      const activeBtn = document.getElementById('nav-' + tabId);
+      activeBtn.classList.remove('text-slate-400');
+      activeBtn.classList.add('text-indigo-600', 'bg-indigo-50/50');
+      activeBtn.querySelector('.material-symbols-outlined').classList.add('filled');
+      activeBtn.querySelector('.nav-text').classList.remove('font-medium');
+      activeBtn.querySelector('.nav-text').classList.add('font-bold');
+
+      // Add logic for dynamic header icons
+      const moreBtn = document.getElementById('header-more-btn');
+      if(tabId === 'notes') {
+        moreBtn.style.display = 'flex';
+      } else {
+        moreBtn.style.display = 'none';
+      }
+    }
+
+    // Handle Task Checkbox Toggle
+    function toggleTask(element) {
+      element.classList.toggle('completed');
+      const text = element.querySelector('.task-text');
+      const icon = element.querySelector('.checkbox-icon');
+      
+      if(element.classList.contains('completed')) {
+        text.classList.add('line-through');
+        icon.classList.remove('task-icon-hidden');
+      } else {
+        text.classList.remove('line-through');
+        icon.classList.add('task-icon-hidden');
+      }
+    }
+
+    // Deep Work Timer Logic
+    let timerInterval;
+    let timeLeft = 25 * 60; // 25 mins
+    let isRunning = false;
+
+    const timerDisplay = document.getElementById('deep-work-timer');
+    const timerBtn = document.getElementById('toggle-timer-btn');
+
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      timerDisplay.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    timerBtn.addEventListener('click', () => {
+      if(isRunning) {
+        clearInterval(timerInterval);
+        timerBtn.innerText = 'Resume Focus';
+        timerBtn.classList.remove('bg-error', 'shadow-error/20');
+        timerBtn.classList.add('bg-primary', 'shadow-primary/20');
+      } else {
+        timerBtn.innerText = 'Pause Session';
+        timerBtn.classList.remove('bg-primary', 'shadow-primary/20');
+        timerBtn.classList.add('bg-error', 'shadow-error/20');
+        timerInterval = setInterval(() => {
+          if(timeLeft > 0) {
+            timeLeft--;
+            updateTimerDisplay();
+          } else {
+            clearInterval(timerInterval);
+            timerBtn.innerText = 'Session Finished!';
+            const alarm = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+            alarm.play().catch(e=>console.log(e));
+          }
+        }, 1000);
+      }
+      isRunning = !isRunning;
+    });
+
+    // Assignments Filter Toggle
+    function setAssignmentFilter(filterType) {
+      const pendingBtn = document.getElementById('filter-pending');
+      const completedBtn = document.getElementById('filter-completed');
+      const indicator = document.getElementById('filter-indicator');
+      
+      const list = document.getElementById('assignments-list');
+      const emptyState = document.getElementById('assignments-completed');
+
+      if(filterType === 'pending') {
+        pendingBtn.classList.add('text-primary', 'font-semibold');
+        pendingBtn.classList.remove('text-on-surface-variant', 'font-medium');
+        
+        completedBtn.classList.remove('text-primary', 'font-semibold');
+        completedBtn.classList.add('text-on-surface-variant', 'font-medium');
+        
+        indicator.style.transform = 'translateX(0)';
+        
+        list.style.display = 'block';
+        emptyState.style.display = 'none';
+      } else {
+        completedBtn.classList.add('text-primary', 'font-semibold');
+        completedBtn.classList.remove('text-on-surface-variant', 'font-medium');
+        
+        pendingBtn.classList.remove('text-primary', 'font-semibold');
+        pendingBtn.classList.add('text-on-surface-variant', 'font-medium');
+        
+        indicator.style.transform = 'translateX(105%)';
+        
+        list.style.display = 'none';
+        emptyState.style.display = 'block';
+      }
+    }
+
+    // Timetable Day Selector
+    function setDay(dayName) {
+      document.querySelectorAll('.day-btn').forEach(btn => {
+        if(btn.innerText === dayName) {
+          btn.classList.replace('bg-surface-container-high', 'bg-primary');
+          btn.classList.replace('text-on-surface-variant', 'text-on-primary');
+          btn.classList.replace('font-medium', 'font-semibold');
+        } else {
+          btn.classList.replace('bg-primary', 'bg-surface-container-high');
+          btn.classList.replace('text-on-primary', 'text-on-surface-variant');
+          btn.classList.replace('font-semibold', 'font-medium');
+        }
+      });
+    }
+
+    // URL Parsing to load a specific tab (if launched via PWA Shortcut)
+    window.addEventListener('DOMContentLoaded', (event) => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      if(tab) {
+        switchTab(tab);
+      }
+    });
+
+  </script>
+
+  <!-- Register Service Worker for PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('✅ SW registered:', reg.scope))
+          .catch(err => console.error('❌ SW registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
