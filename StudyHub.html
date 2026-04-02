@@ -20,7 +20,7 @@
 <!-- HEADER -->
 <header class="app-header">
   <div style="display:flex;align-items:center;gap:0.75rem">
-    <div class="avatar"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7WdW14jGcCu3y5v_t11VevowASdRxNJq6lLT3Gy8QtwLVIiKDe9gXEl8WNdG3Mump67Xxb9wtZ4eibvZ_m1chaAdabOEw9Ke1kdgA2dqi_8bJbR-uinBEW1I-UB79ZnZgD9Excw5S593OXBsbVCawZ3ztz5ogujYEnhvcNfQaj_NtTdjzxINSa0o274SDBhzRcauK2-H5D3sA1YINq4aJHrAdk76Pqrs-EYNkfifLSnx_uuJeQJZW9FrBIBWvdViAyuzQ1ScKHA" alt="Profile"></div>
+    <div class="avatar" style="cursor:pointer" onclick="switchTab('profile',document.querySelectorAll('.nav-item')[4])"><img id="header-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7WdW14jGcCu3y5v_t11VevowASdRxNJq6lLT3Gy8QtwLVIiKDe9gXEl8WNdG3Mump67Xxb9wtZ4eibvZ_m1chaAdabOEw9Ke1kdgA2dqi_8bJbR-uinBEW1I-UB79ZnZgD9Excw5S593OXBsbVCawZ3ztz5ogujYEnhvcNfQaj_NtTdjzxINSa0o274SDBhzRcauK2-H5D3sA1YINq4aJHrAdk76Pqrs-EYNkfifLSnx_uuJeQJZW9FrBIBWvdViAyuzQ1ScKHA" alt="Profile"></div>
     <span class="logo">StudyHub</span>
   </div>
   <button class="icon-btn" onclick="showToast('Search coming soon!')"><span class="material-symbols-outlined">search</span></button>
@@ -29,7 +29,7 @@
 <!-- ============ DASHBOARD ============ -->
 <div id="view-dashboard" class="view active">
   <p class="section-label" id="dash-date"></p>
-  <h1 style="font-size:2.75rem;font-weight:800;letter-spacing:-0.04em;line-height:1;margin:0.5rem 0">Hello, Alex.</h1>
+  <h1 style="font-size:2.75rem;font-weight:800;letter-spacing:-0.04em;line-height:1;margin:0.5rem 0" id="dash-greeting">Hello, Student.</h1>
   <p style="color:var(--secondary);font-size:1.05rem;margin-bottom:2.5rem" id="dash-summary"></p>
 
   <!-- Current Class -->
@@ -145,6 +145,69 @@
 <!-- Hidden camera input -->
 <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
 
+<!-- ============ PROFILE ============ -->
+<div id="view-profile" class="view">
+  <div style="text-align:center;margin-bottom:2.5rem">
+    <div class="profile-avatar-lg"><img id="profile-avatar-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7WdW14jGcCu3y5v_t11VevowASdRxNJq6lLT3Gy8QtwLVIiKDe9gXEl8WNdG3Mump67Xxb9wtZ4eibvZ_m1chaAdabOEw9Ke1kdgA2dqi_8bJbR-uinBEW1I-UB79ZnZgD9Excw5S593OXBsbVCawZ3ztz5ogujYEnhvcNfQaj_NtTdjzxINSa0o274SDBhzRcauK2-H5D3sA1YINq4aJHrAdk76Pqrs-EYNkfifLSnx_uuJeQJZW9FrBIBWvdViAyuzQ1ScKHA" alt=""></div>
+    <h1 style="font-size:1.5rem;font-weight:700" id="profile-display-name">Student</h1>
+    <p style="font-size:0.875rem;color:var(--on-surface-variant)" id="profile-display-email">student@studyhub.app</p>
+  </div>
+
+  <!-- Account Settings -->
+  <div class="settings-group">
+    <p class="settings-group-title">Account</p>
+    <div class="settings-row" onclick="openModal('modal-edit-name')">
+      <div class="settings-row-left">
+        <div class="settings-row-icon" style="background:rgba(79,70,229,0.08)"><span class="material-symbols-outlined" style="color:var(--primary);font-size:20px">person</span></div>
+        <div><p style="font-weight:600;font-size:0.9375rem">Display Name</p><p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.125rem" id="profile-name-preview">Student</p></div>
+      </div>
+      <span class="material-symbols-outlined" style="color:#cbd5e1;font-size:20px">chevron_right</span>
+    </div>
+    <div class="settings-row" onclick="openModal('modal-edit-email')">
+      <div class="settings-row-left">
+        <div class="settings-row-icon" style="background:rgba(16,185,129,0.08)"><span class="material-symbols-outlined" style="color:#10b981;font-size:20px">mail</span></div>
+        <div><p style="font-weight:600;font-size:0.9375rem">Email</p><p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.125rem" id="profile-email-preview">student@studyhub.app</p></div>
+      </div>
+      <span class="material-symbols-outlined" style="color:#cbd5e1;font-size:20px">chevron_right</span>
+    </div>
+  </div>
+
+  <!-- Appearance -->
+  <div class="settings-group">
+    <p class="settings-group-title">Appearance</p>
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-icon" style="background:rgba(139,92,246,0.08)"><span class="material-symbols-outlined" style="color:#8b5cf6;font-size:20px" id="theme-icon">light_mode</span></div>
+        <div><p style="font-weight:600;font-size:0.9375rem">Dark Mode</p><p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.125rem" id="theme-label">Light theme active</p></div>
+      </div>
+      <button class="theme-switch" id="theme-toggle" onclick="toggleTheme()"></button>
+    </div>
+  </div>
+
+  <!-- App Stats -->
+  <div class="settings-group">
+    <p class="settings-group-title">Your Stats</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem">
+      <div class="card" style="text-align:center"><p style="font-size:2rem;font-weight:800;color:var(--primary)" id="stat-notes">0</p><p class="section-label">Notes</p></div>
+      <div class="card" style="text-align:center"><p style="font-size:2rem;font-weight:800;color:var(--primary)" id="stat-assigns">0</p><p class="section-label">Tasks</p></div>
+      <div class="card" style="text-align:center"><p style="font-size:2rem;font-weight:800;color:var(--primary)" id="stat-folders">0</p><p class="section-label">Folders</p></div>
+    </div>
+  </div>
+
+  <!-- Danger Zone -->
+  <div class="settings-group">
+    <p class="settings-group-title">Data</p>
+    <div class="settings-row danger-row" onclick="confirmResetData()">
+      <div class="settings-row-left">
+        <div class="settings-row-icon" style="background:rgba(186,26,26,0.08)"><span class="material-symbols-outlined" style="color:var(--error);font-size:20px">delete_forever</span></div>
+        <div><p style="font-weight:600;font-size:0.9375rem;color:var(--error)">Reset All Data</p><p style="font-size:0.75rem;color:var(--on-surface-variant);margin-top:0.125rem">Delete all assignments, notes & settings</p></div>
+      </div>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:0.75rem;color:var(--on-surface-variant);margin-top:2rem">StudyHub v1.0 • Made with ❤️</p>
+</div>
+
 <!-- ============ MODALS ============ -->
 <!-- Add Assignment Modal -->
 <div class="modal-overlay" id="modal-assignment">
@@ -207,6 +270,30 @@
   </div>
 </div>
 
+<!-- Edit Name Modal -->
+<div class="modal-overlay" id="modal-edit-name">
+  <div class="modal">
+    <h2>Change Display Name</h2>
+    <div class="form-group"><label>Your Name</label><input class="form-input" id="inp-profile-name" placeholder="e.g. Kunal"></div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
+      <button class="btn-primary" style="flex:1" onclick="saveProfileName()">Save</button>
+      <button class="btn-primary" style="flex:1;background:var(--surface-container-high);color:var(--on-surface)" onclick="closeModal('modal-edit-name')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Email Modal -->
+<div class="modal-overlay" id="modal-edit-email">
+  <div class="modal">
+    <h2>Change Email</h2>
+    <div class="form-group"><label>Email</label><input class="form-input" id="inp-profile-email" type="email" placeholder="e.g. you@example.com"></div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
+      <button class="btn-primary" style="flex:1" onclick="saveProfileEmail()">Save</button>
+      <button class="btn-primary" style="flex:1;background:var(--surface-container-high);color:var(--on-surface)" onclick="closeModal('modal-edit-email')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -223,6 +310,9 @@
   </button>
   <button class="nav-item" onclick="switchTab('notes',this)">
     <span class="material-symbols-outlined">description</span><span class="nav-label">Notes</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('profile',this)">
+    <span class="material-symbols-outlined">person</span><span class="nav-label">Profile</span>
   </button>
 </nav>
 

@@ -1,5 +1,5 @@
 // ==================== DATA LAYER (localStorage) ====================
-const KEYS = { assignments: 'sh_assignments', tasks: 'sh_tasks', timetable: 'sh_timetable', notes: 'sh_notes', folders: 'sh_folders' };
+const KEYS = { assignments: 'sh_assignments', tasks: 'sh_tasks', timetable: 'sh_timetable', notes: 'sh_notes', folders: 'sh_folders', profile: 'sh_profile' };
 
 function load(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } }
 function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
@@ -78,6 +78,7 @@ function switchTab(tabId, btn) {
   else if (tabId === 'assignments') renderAssignments();
   else if (tabId === 'timetable') renderTimetable();
   else if (tabId === 'notes') renderNotes();
+  else if (tabId === 'profile') renderProfile();
 }
 
 // ==================== MODAL HELPERS ====================
@@ -127,6 +128,10 @@ function renderDashboard() {
   // Date
   const now = new Date();
   document.getElementById('dash-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toUpperCase();
+
+  // Greeting with profile name
+  const profile = getProfile();
+  document.getElementById('dash-greeting').textContent = `Hello, ${profile.name}.`;
 
   // Summary
   const assigns = load(KEYS.assignments).filter(a => !a.done);
@@ -593,14 +598,99 @@ function timeAgo(dateStr) {
   return `${mins}m ago`;
 }
 
+// ==================== PROFILE & THEME ====================
+function getProfile() {
+  const def = { name: 'Student', email: 'student@studyhub.app' };
+  try { return JSON.parse(localStorage.getItem(KEYS.profile)) || def; } catch { return def; }
+}
+function saveProfile(data) { localStorage.setItem(KEYS.profile, JSON.stringify(data)); }
+
+function renderProfile() {
+  const p = getProfile();
+  document.getElementById('profile-display-name').textContent = p.name;
+  document.getElementById('profile-display-email').textContent = p.email;
+  document.getElementById('profile-name-preview').textContent = p.name;
+  document.getElementById('profile-email-preview').textContent = p.email;
+  // Stats
+  document.getElementById('stat-notes').textContent = load(KEYS.notes).length;
+  document.getElementById('stat-assigns').textContent = load(KEYS.assignments).length;
+  document.getElementById('stat-folders').textContent = load(KEYS.folders).length;
+  // Theme toggle state
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.getElementById('theme-toggle').classList.toggle('active', isDark);
+  document.getElementById('theme-icon').textContent = isDark ? 'dark_mode' : 'light_mode';
+  document.getElementById('theme-label').textContent = isDark ? 'Dark theme active' : 'Light theme active';
+}
+
+function saveProfileName() {
+  const name = document.getElementById('inp-profile-name').value.trim();
+  if (!name) return showToast('Enter your name');
+  const p = getProfile();
+  p.name = name;
+  saveProfile(p);
+  closeModal('modal-edit-name');
+  renderProfile();
+  document.getElementById('dash-greeting').textContent = `Hello, ${name}.`;
+  showToast('Name updated ✓');
+}
+
+function saveProfileEmail() {
+  const email = document.getElementById('inp-profile-email').value.trim();
+  if (!email) return showToast('Enter your email');
+  const p = getProfile();
+  p.email = email;
+  saveProfile(p);
+  closeModal('modal-edit-email');
+  renderProfile();
+  showToast('Email updated ✓');
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    html.removeAttribute('data-theme');
+    localStorage.setItem('sh_theme', 'light');
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    localStorage.setItem('sh_theme', 'dark');
+  }
+  // Update meta theme-color
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = isDark ? '#3525cd' : '#111318';
+  renderProfile();
+  showToast(isDark ? '☀️ Light mode' : '🌙 Dark mode');
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem('sh_theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = '#111318';
+  }
+}
+
+function confirmResetData() {
+  if (confirm('⚠️ This will delete ALL your data (assignments, notes, timetable, tasks). Are you sure?')) {
+    Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+    localStorage.removeItem('sh_seeded');
+    localStorage.removeItem('sh_theme');
+    document.documentElement.removeAttribute('data-theme');
+    showToast('All data reset');
+    setTimeout(() => location.reload(), 800);
+  }
+}
+
 // ==================== URL PARAMS (PWA shortcuts) ====================
 const params = new URLSearchParams(window.location.search);
 const startTab = params.get('tab');
 
 // ==================== INIT ====================
+loadTheme();
 seedDefaults();
-if (startTab && ['dashboard','assignments','timetable','notes'].includes(startTab)) {
-  const idx = ['dashboard','assignments','timetable','notes'].indexOf(startTab);
+if (startTab && ['dashboard','assignments','timetable','notes','profile'].includes(startTab)) {
+  const idx = ['dashboard','assignments','timetable','notes','profile'].indexOf(startTab);
   switchTab(startTab, document.querySelectorAll('.nav-item')[idx]);
 } else {
   renderDashboard();
