@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">StudyHub dashboard preview</title>
+  <desc id="desc">A preview graphic of the StudyHub installable dashboard experience.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#edf1ff"/>
+      <stop offset="100%" stop-color="#f9f9ff"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3525cd"/>
+      <stop offset="100%" stop-color="#5b4cff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect x="48" y="48" width="1184" height="624" rx="40" fill="#ffffff" stroke="#e8e7f9"/>
+  <rect x="96" y="96" width="320" height="528" rx="30" fill="url(#hero)"/>
+  <text x="136" y="160" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">StudyHub</text>
+  <text x="136" y="210" fill="#d9d6ff" font-family="Inter, Arial, sans-serif" font-size="14">Your college command center</text>
+  <text x="136" y="300" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="800">Hello,</text>
+  <text x="136" y="368" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="800">Student.</text>
+  <rect x="136" y="430" width="240" height="116" rx="24" fill="rgba(255,255,255,0.14)"/>
+  <text x="168" y="474" fill="#d9d6ff" font-family="Inter, Arial, sans-serif" font-size="15">Next class</text>
+  <text x="168" y="516" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">Data Structures</text>
+  <text x="168" y="546" fill="#d9d6ff" font-family="Inter, Arial, sans-serif" font-size="15">Starts in 15 min</text>
+  <rect x="468" y="108" width="292" height="186" rx="28" fill="#f5f4ff"/>
+  <text x="500" y="154" fill="#6b7280" font-family="Inter, Arial, sans-serif" font-size="15">Urgent assignments</text>
+  <text x="500" y="214" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="700">3 due today</text>
+  <rect x="500" y="234" width="228" height="12" rx="6" fill="#d9d6ff"/>
+  <rect x="500" y="256" width="180" height="12" rx="6" fill="#c2bbff"/>
+  <rect x="792" y="108" width="392" height="186" rx="28" fill="#ffffff" stroke="#e8e7f9"/>
+  <text x="824" y="154" fill="#6b7280" font-family="Inter, Arial, sans-serif" font-size="15">Today's schedule</text>
+  <rect x="824" y="186" width="328" height="44" rx="16" fill="#f7f7ff"/>
+  <text x="850" y="214" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600">Software Engineering</text>
+  <text x="1040" y="214" fill="#6b7280" font-family="Inter, Arial, sans-serif" font-size="16">11:00</text>
+  <rect x="824" y="246" width="328" height="44" rx="16" fill="#f7f7ff"/>
+  <text x="850" y="274" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600">Philosophy</text>
+  <text x="1070" y="274" fill="#6b7280" font-family="Inter, Arial, sans-serif" font-size="16">14:00</text>
+  <rect x="468" y="326" width="716" height="266" rx="28" fill="#ffffff" stroke="#e8e7f9"/>
+  <text x="500" y="372" fill="#6b7280" font-family="Inter, Arial, sans-serif" font-size="15">Notes and tasks</text>
+  <rect x="500" y="404" width="300" height="156" rx="22" fill="#f8fafc"/>
+  <text x="528" y="442" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">Deep Work Timer</text>
+  <text x="528" y="508" fill="#3525cd" font-family="Inter, Arial, sans-serif" font-size="54" font-weight="800">25:00</text>
+  <rect x="830" y="404" width="322" height="56" rx="18" fill="#f8fafc"/>
+  <rect x="830" y="476" width="322" height="56" rx="18" fill="#f8fafc"/>
+  <rect x="830" y="548" width="322" height="12" rx="6" fill="#d6d3ff"/>
+  <text x="860" y="438" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600">Review chemistry notes</text>
+  <text x="860" y="510" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600">Email professor</text>
+</svg>

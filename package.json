@@ -1,0 +1,29 @@
+{
+  "name": "studyhub",
+  "version": "1.0.0",
+  "description": "StudyHub unofficial Android app wrapper and web app",
+  "main": "app.js",
+  "scripts": {
+    "prepare:web": "node scripts/prepare-capacitor.mjs",
+    "android:copy": "npm run prepare:web && npx cap copy android",
+    "android:sync": "npm run prepare:web && npx cap sync android",
+    "android:open": "npm run android:sync && npx cap open android",
+    "android:doctor": "npx cap doctor"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/badgujarkunal93-blip/StudyHub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/badgujarkunal93-blip/StudyHub/issues"
+  },
+  "homepage": "https://github.com/badgujarkunal93-blip/StudyHub#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0"
+  }
+}

@@ -2,6 +2,8 @@
 const KEYS = { assignments: 'sh_assignments', tasks: 'sh_tasks', timetable: 'sh_timetable', notes: 'sh_notes', folders: 'sh_folders', profile: 'sh_profile', notifications: 'sh_notifications' };
 const FILE_DB = { name: 'studyhub_files', version: 1, store: 'files' };
 const MAX_LIBRARY_FILE_SIZE = 15 * 1024 * 1024;
+let deferredInstallPrompt = null;
+let displayModeMediaQuery = null;
 
 function load(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } }
 function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
@@ -231,6 +233,104 @@ function showToast(msg) {
     t.classList.remove('show');
     toastTimer = null;
   }, 2200);
+}
+
+function isStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function isIosInstallable() {
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent) && !isStandaloneMode();
+}
+
+function renderInstallCard() {
+  const chip = document.getElementById('install-status-chip');
+  const copy = document.getElementById('install-status-copy');
+  const btn = document.getElementById('install-app-btn');
+  if (!chip || !copy || !btn) return;
+
+  if (isStandaloneMode()) {
+    chip.textContent = 'Installed';
+    copy.textContent = 'StudyHub is already installed on this device and can open like a native app.';
+    btn.hidden = true;
+    btn.disabled = true;
+    return;
+  }
+
+  btn.hidden = false;
+  btn.disabled = false;
+
+  if (deferredInstallPrompt) {
+    chip.textContent = 'Ready to install';
+    copy.textContent = 'Save StudyHub to your home screen or desktop for faster launch and a cleaner full-screen experience.';
+    btn.textContent = 'Install app';
+    return;
+  }
+
+  if (isIosInstallable()) {
+    chip.textContent = 'Add to Home Screen';
+    copy.textContent = 'In Safari, tap Share and then Add to Home Screen to install StudyHub on your iPhone or iPad.';
+    btn.textContent = 'Show steps';
+    return;
+  }
+
+  chip.textContent = 'Browser menu';
+  copy.textContent = 'Open this app in Chrome or Edge, then use the browser install option when it becomes available.';
+  btn.textContent = 'Install help';
+}
+
+async function installApp() {
+  if (isStandaloneMode()) {
+    showToast('StudyHub is already installed');
+    return;
+  }
+
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    renderInstallCard();
+    showToast(choice.outcome === 'accepted' ? 'Install prompt accepted' : 'Install canceled');
+    return;
+  }
+
+  if (isIosInstallable()) {
+    showToast('Safari: Share then Add to Home Screen');
+    return;
+  }
+
+  showToast('Use Chrome or Edge menu to install this app');
+}
+
+function registerInstallPrompt() {
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    renderInstallCard();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    renderInstallCard();
+    showToast('StudyHub installed');
+  });
+
+  if (!window.matchMedia) return;
+  displayModeMediaQuery = window.matchMedia('(display-mode: standalone)');
+  if (typeof displayModeMediaQuery.addEventListener === 'function') {
+    displayModeMediaQuery.addEventListener('change', renderInstallCard);
+  } else if (typeof displayModeMediaQuery.addListener === 'function') {
+    displayModeMediaQuery.addListener(renderInstallCard);
+  }
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    await navigator.serviceWorker.register('./sw.js');
+  } catch (error) {
+    console.warn('Service worker registration failed', error);
+  }
 }
 
 // ==================== TIMER ====================
@@ -1712,6 +1812,9 @@ function renderProfile() {
   document.getElementById('theme-toggle').classList.toggle('active', isDark);
   document.getElementById('theme-icon').textContent = isDark ? 'dark_mode' : 'light_mode';
   document.getElementById('theme-label').textContent = isDark ? 'Dark theme active' : 'Light theme active';
+  const profileFooter = document.querySelector('#view-profile > p:last-of-type');
+  if (profileFooter) profileFooter.textContent = 'StudyHub v1.1 | made by "KSB"';
+  renderInstallCard();
 }
 
 function saveProfileName() {
@@ -1792,6 +1895,8 @@ const startTab = params.get('tab');
 
 // ==================== INIT ====================
 loadTheme();
+registerInstallPrompt();
+registerServiceWorker();
 seedDefaults();
 normalizeLibraryData();
 updateScreenMode(startTab === 'timetable' ? 'timetable' : 'dashboard');
@@ -1804,3 +1909,5 @@ if (startTab && ['dashboard','assignments','timetable','notes','profile'].includ
 } else {
   renderDashboard();
 }
+
+renderInstallCard();

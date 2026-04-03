@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>StudyHub</title>
   <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
   <meta name="theme-color" content="#3525cd">
   <meta name="description" content="Track assignments, timetable, and notes all in one place">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -229,6 +231,16 @@
     </div>
   </div>
 
+  <div class="settings-group">
+    <p class="settings-group-title">App</p>
+    <div class="install-card">
+      <div class="install-chip" id="install-status-chip">Browser menu</div>
+      <p class="install-card-title">Install StudyHub</p>
+      <p class="install-card-text" id="install-status-copy">Add StudyHub to your home screen or desktop for quicker access and an app-like layout.</p>
+      <button class="btn-primary install-card-btn" id="install-app-btn" onclick="installApp()">Install app</button>
+    </div>
+  </div>
+
   <!-- App Stats -->
   <div class="settings-group">
     <p class="settings-group-title">Your Stats</p>
@@ -427,9 +439,5 @@
 
 <script src="./app.js"></script>
 
-<!-- Service Worker -->
-<script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(e=>console.warn(e));}
-</script>
 </body>
 </html>
